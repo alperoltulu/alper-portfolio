@@ -1,0 +1,10 @@
+name = "alperoltulu-portfolio"
+main = ".open-next/worker.js"
+compatibility_date = "2024-03-20"
+compatibility_flags = ["nodejs_compat"]
+
+# [D1 DATABASE BINDING]
+[[d1_databases]]
+binding = "DB"
+database_name = "alper-cms-db"
+database_id = "cd31cd9f-434c-4220-996f-71ba3c8654a1"
