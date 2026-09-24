@@ -1,13 +1,15 @@
 import { builder } from "@builder.io/sdk";
-export const runtime = 'edge';
-
 import { RenderBuilderContent } from "@/components/builder";
 import { notFound } from "next/navigation";
 
 builder.init("c37efdc701164072a49340387b858505");
 
-export default async function Page(props: { params: Promise<{ page: string[] }> }) {
-  const params = await props.params;
+// Cloudflare SSG iin tm dinamik rotalar derleme aamasnda tanmlar
+export async function generateStaticParams() {
+  return []; // Builder.io paneli karlana kadar varsaylan bo dn
+}
+
+export default async function Page({ params }: { params: { page: string[] } }) {
   const urlPath = "/" + (params?.page?.join("/") || "");
   
   const content = await builder
