@@ -2,7 +2,7 @@
 import { builder } from "@builder.io/sdk";
 import { BuilderComponent, useIsPreviewing } from "@builder.io/react";
 
-builder.init(process.env.NEXT_PUBLIC_BUILDER_API_KEY!);
+builder.init("c37efdc701164072a49340387b858505");
 
 export function RenderBuilderContent({ content, model }: { content: any; model: string }) {
   const isPreviewing = useIsPreviewing();

@@ -2,7 +2,7 @@ import { builder } from "@builder.io/sdk";
 import { RenderBuilderContent } from "@/components/builder";
 import DefaultPortfolio from "@/components/DefaultPortfolio";
 
-builder.init(process.env.NEXT_PUBLIC_BUILDER_API_KEY!);
+builder.init("c37efdc701164072a49340387b858505");
 
 export default async function Home() {
   const content = await builder

@@ -2,7 +2,7 @@ import { builder } from "@builder.io/sdk";
 import { RenderBuilderContent } from "@/components/builder";
 import { notFound } from "next/navigation";
 
-builder.init(process.env.NEXT_PUBLIC_BUILDER_API_KEY!);
+builder.init("c37efdc701164072a49340387b858505");
 
 export default async function Page(props: { params: Promise<{ page: string[] }> }) {
   const params = await props.params;
