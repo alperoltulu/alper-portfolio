@@ -1,4 +1,6 @@
 import { builder } from "@builder.io/sdk";
+export const runtime = 'edge';
+
 import { RenderBuilderContent } from "@/components/builder";
 import { notFound } from "next/navigation";
 
