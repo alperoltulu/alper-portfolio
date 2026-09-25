@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { CanvasElement } from '@/types/canvas';
-import { Twitter, Linkedin, Github, Instagram, Youtube } from 'lucide-react';
+// Removed missing icons
 
 interface CanvasEngineProps {
   elements: CanvasElement[];
@@ -191,12 +191,7 @@ export default function CanvasEngine({
               </a>
             ))}
             
-            {/* Legacy Icons */}
-            {el.props.twitter && <div className="p-2 bg-slate-900 text-white rounded-full"><Twitter className="w-4 h-4"/></div>}
-            {el.props.linkedin && <div className="p-2 bg-blue-600 text-white rounded-full"><Linkedin className="w-4 h-4"/></div>}
-            {el.props.github && <div className="p-2 bg-slate-800 text-white rounded-full"><Github className="w-4 h-4"/></div>}
-            {el.props.instagram && <div className="p-2 bg-pink-600 text-white rounded-full"><Instagram className="w-4 h-4"/></div>}
-            {el.props.youtube && <div className="p-2 bg-red-600 text-white rounded-full"><Youtube className="w-4 h-4"/></div>}
+            {/* Legacy Icons Removed */}
             
             {dynamicLinks.length === 0 && !el.props.twitter && !el.props.linkedin && !el.props.github && !el.props.instagram && !el.props.youtube && (
               <span className="text-xs text-slate-500 px-2">Sosyal Link Ekleyin</span>

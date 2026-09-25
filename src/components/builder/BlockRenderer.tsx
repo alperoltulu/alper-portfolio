@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Download, ExternalLink, Github, Instagram, Linkedin, Twitter, Youtube, PlayCircle } from "lucide-react";
+import { Download, ExternalLink, PlayCircle } from "lucide-react";
 
 export type BlockType = 'text' | 'image' | 'button' | 'social' | 'cv' | 'video' | 'line';
 
@@ -83,22 +83,7 @@ export default function BlockRenderer({ blocks }: { blocks: Block[] }) {
                   </a>
                 ))}
 
-                {/* Legacy Links */}
-                {block.data.twitter && (
-                  <a href={block.data.twitter} target="_blank" className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors"><Twitter className="w-5 h-5" /></a>
-                )}
-                {block.data.linkedin && (
-                  <a href={block.data.linkedin} target="_blank" className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors"><Linkedin className="w-5 h-5" /></a>
-                )}
-                {block.data.github && (
-                  <a href={block.data.github} target="_blank" className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"><Github className="w-5 h-5" /></a>
-                )}
-                {block.data.instagram && (
-                  <a href={block.data.instagram} target="_blank" className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-full transition-colors"><Instagram className="w-5 h-5" /></a>
-                )}
-                {block.data.youtube && (
-                  <a href={block.data.youtube} target="_blank" className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"><Youtube className="w-5 h-5" /></a>
-                )}
+                {/* Legacy Links Removed */}
               </div>
             );
 
