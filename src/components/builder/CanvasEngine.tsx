@@ -161,7 +161,7 @@ export default function CanvasEngine({
           <a 
             href={isEditMode ? undefined : (el.props.url || "#")}
             onClick={(e) => handleLinkClick(e, el.props.url)}
-            className="inline-flex items-center justify-center px-6 py-3 font-bold rounded-full transition-all shadow-lg whitespace-nowrap overflow-hidden gap-3"
+            className="inline-flex items-center justify-center px-6 py-3 font-bold rounded-full transition-all shadow-lg whitespace-nowrap overflow-hidden gap-3 pointer-events-auto cursor-pointer"
             style={{ 
               background: el.props.color || 'linear-gradient(to right, #2563eb, #db2777)',
               color: el.props.textColor || '#ffffff',
@@ -213,7 +213,7 @@ export default function CanvasEngine({
           <a 
             href={logoUrl}
             onClick={(e) => handleLinkClick(e, el.props.url)}
-            className="bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-900/20 rotate-[-5deg] hover:rotate-0 transition-all border-4 border-white dark:border-slate-800 overflow-hidden relative cursor-pointer group block"
+            className="bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-900/20 transition-all border-4 border-white dark:border-slate-800 overflow-hidden relative cursor-pointer group block pointer-events-auto"
             style={{
               width: el.w ? `${el.w}px` : '80px',
               height: el.h ? `${el.h}px` : '80px',
