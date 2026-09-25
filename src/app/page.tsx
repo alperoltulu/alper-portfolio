@@ -24,7 +24,12 @@ export default function Home() {
     fetch("/api/content")
       .then(res => res.json())
       .then(res => {
-        if (res.data) setData(res.data);
+        if (res.data) {
+          if (!res.data.hero) res.data.hero = { elements: [] };
+          if (!res.data.hero.elements) res.data.hero.elements = [];
+          if (!res.data.projects) res.data.projects = [];
+          setData(res.data);
+        }
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));

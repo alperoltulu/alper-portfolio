@@ -68,7 +68,10 @@ export default function AdminPage() {
       .then(res => res.json())
       .then(res => {
         if (res.data) {
+          if (!res.data.hero) res.data.hero = { elements: [] };
           if (!res.data.hero.elements) res.data.hero.elements = [];
+          if (!res.data.projects) res.data.projects = [];
+          
           if (!res.data.hero.elements.find((e: any) => e.type === 'hero')) {
             res.data.hero.elements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, h: 400, props: {} });
           }
@@ -458,7 +461,7 @@ export default function AdminPage() {
           {isProjectsOpen && (
             <div className="p-3 space-y-4 border-t border-slate-200 dark:border-slate-800">
               <button onClick={addProject} className="w-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded text-xs font-bold">+ Yeni Proje Ekle</button>
-              {data.projects.map((proj, i) => (
+              {(data.projects || []).map((proj: any, i: number) => (
                 <div key={i} className="relative bg-white dark:bg-slate-950 p-2 rounded border border-slate-200 dark:border-slate-800 space-y-2">
                   <button onClick={() => removeProject(i)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4"/></button>
                   <input value={proj.title} onChange={e => updateProject(i, "title", e.target.value)} className="w-[90%] p-1 text-xs border rounded bg-transparent" placeholder="Proje Adı" />
