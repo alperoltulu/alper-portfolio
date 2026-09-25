@@ -124,6 +124,21 @@ export default function CanvasEngine({
     if (isEditMode && onSelect) onSelect(null);
   };
 
+  const handleElementDrop = (e: React.DragEvent, el: CanvasElement) => {
+    if (!isEditMode || !onUpdateElement) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const url = e.dataTransfer.getData('text/plain');
+    if (url && (el.type === 'shape' || el.type === 'button' || el.type === 'project')) {
+      onUpdateElement(el.id, { props: { ...el.props, image: url } });
+    }
+  };
+
+  const handleElementDragOver = (e: React.DragEvent) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+  };
+
   const renderElementContent = (el: CanvasElement) => {
     switch (el.type) {
       case 'button':
@@ -131,29 +146,37 @@ export default function CanvasEngine({
           <a 
             href={isEditMode ? undefined : (el.props.url || "#")}
             onClick={e => isEditMode && e.preventDefault()}
-            className="inline-flex items-center justify-center px-6 py-3 font-bold rounded-full transition-all shadow-lg whitespace-nowrap"
+            className="inline-flex items-center justify-center px-6 py-3 font-bold rounded-full transition-all shadow-lg whitespace-nowrap overflow-hidden gap-3"
             style={{ 
               background: el.props.color || 'linear-gradient(to right, #2563eb, #db2777)',
               color: el.props.textColor || '#ffffff',
               width: el.w ? `${el.w}px` : 'auto',
-              height: el.h ? `${el.h}px` : 'auto'
+              height: el.h ? `${el.h}px` : 'auto',
+              padding: el.props.image && !el.props.label ? '0.5rem' : undefined
             }}
           >
-            {el.props.label || "Buton"}
+            {el.props.image && (
+              <img src={el.props.image} alt="icon" className="w-8 h-8 object-contain" />
+            )}
+            {el.props.label && <span>{el.props.label}</span>}
           </a>
         );
       
       case 'shape':
+        const hasImage = !!el.props.image;
         return (
           <div 
-            className="shadow-lg"
+            className="shadow-lg relative overflow-hidden flex items-center justify-center bg-cover bg-center"
             style={{
               width: `${el.w || 100}px`,
               height: `${el.h || 100}px`,
-              backgroundColor: el.props.color || '#db2777',
-              borderRadius: el.props.shapeType === 'circle' ? '50%' : (el.props.borderRadius || '16px')
+              backgroundColor: hasImage ? 'transparent' : (el.props.color || '#db2777'),
+              borderRadius: el.props.shapeType === 'circle' ? '50%' : (el.props.borderRadius || '16px'),
+              border: hasImage ? `4px solid ${el.props.color || '#db2777'}` : 'none',
+              backgroundImage: hasImage ? `url(${el.props.image})` : 'none'
             }}
-          />
+          >
+          </div>
         );
 
       case 'line':
@@ -282,6 +305,8 @@ export default function CanvasEngine({
             zIndex: selectedId === el.id ? 50 : 10
           }}
           onPointerDown={(e) => handlePointerDown(e, el.id, el.x, el.y)}
+          onDragOver={handleElementDragOver}
+          onDrop={(e) => handleElementDrop(e, el)}
           onClick={(e) => {
             if (isEditMode) e.stopPropagation();
           }}

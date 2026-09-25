@@ -418,7 +418,12 @@ export default function AdminPage() {
                       
                       {/* Tıklanabilir Üst Alan (Kopyalama için) */}
                       <div 
-                        className="relative aspect-square flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-2 cursor-pointer" 
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', window.location.origin + url);
+                          e.dataTransfer.effectAllowed = 'copy';
+                        }}
+                        className="relative aspect-square flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-2 cursor-grab active:cursor-grabbing" 
                         onClick={(e) => { e.stopPropagation(); copyToClipboard(window.location.origin + url); }}
                       >
                         {isImage ? (
@@ -629,8 +634,13 @@ export default function AdminPage() {
               return (
                 <div 
                   key={file.key} 
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', window.location.origin + url);
+                    e.dataTransfer.effectAllowed = 'copy';
+                  }}
                   onClick={(e) => { e.stopPropagation(); copyToClipboard(window.location.origin + url); }} 
-                  className="relative group rounded overflow-hidden border border-slate-200 dark:border-slate-800 aspect-square flex items-center justify-center bg-white dark:bg-slate-950 cursor-pointer shadow-sm hover:border-blue-500"
+                  className="relative group rounded overflow-hidden border border-slate-200 dark:border-slate-800 aspect-square flex items-center justify-center bg-white dark:bg-slate-950 cursor-pointer shadow-sm hover:border-blue-500 cursor-grab active:cursor-grabbing"
                 >
                   {isImage ? (
                     <img src={url} alt={file.key} className="w-full h-full object-cover pointer-events-none" />
@@ -704,7 +714,8 @@ export default function AdminPage() {
                   <>
                     <div><label className="text-xs text-slate-500">Yazı</label><input value={selectedCanvasEl.props.label || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "label", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
                     <div><label className="text-xs text-slate-500">Link</label><input value={selectedCanvasEl.props.url || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "url", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
-                    <div><label className="text-[10px] text-slate-500">Arkaplan Rengi (Hex veya Gradient)</label><input value={selectedCanvasEl.props.color || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
+                    <div><label className="text-[10px] text-slate-500">Arkaplan Rengi</label><input value={selectedCanvasEl.props.color || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
+                    <div><label className="text-[10px] text-slate-500">İç İkon/Resim URL (Temizlemek için silin)</label><input value={selectedCanvasEl.props.image || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "image", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
                   </>
                 )}
 
@@ -716,7 +727,8 @@ export default function AdminPage() {
                         <option value="square">Kare / Dikdörtgen</option>
                       </select>
                     </div>
-                    <div><label className="text-[10px] text-slate-500">Renk</label><input type="color" value={selectedCanvasEl.props.color || "#db2777"} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full h-8 border rounded p-0" /></div>
+                    <div><label className="text-[10px] text-slate-500">Arkaplan / Kenarlık Rengi</label><input type="color" value={selectedCanvasEl.props.color || "#db2777"} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full h-8 border rounded p-0" /></div>
+                    <div><label className="text-[10px] text-slate-500">İç Resim URL (Temizlemek için silin)</label><input value={selectedCanvasEl.props.image || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "image", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
                   </>
                 )}
                 
