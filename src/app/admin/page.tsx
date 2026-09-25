@@ -257,12 +257,12 @@ export default function AdminPage() {
   };
 
   // PROJECT LOGIC
-  const addProject = () => setData(prev => ({ 
+  const addProject = (template: string = "1") => setData(prev => ({ 
     ...prev, 
     hero: { 
       ...prev.hero, 
       elements: [
-        { id: 'proj-'+Math.random().toString(36).substr(2, 9), type: 'project' as CanvasElementType, x: 50, y: 5, w: 400, props: { title: "Yeni Proje", description: "", image: "", url: "", template: "1" } }, 
+        { id: 'proj-'+Math.random().toString(36).substr(2, 9), type: 'project' as CanvasElementType, x: 50, y: 5, w: 400, props: { title: "Yeni Proje", description: "", image: "", url: "", template } }, 
         ...(prev.hero.elements || [])
       ] 
     } 
@@ -481,33 +481,19 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Eski Projeler (Projelerim) */}
+        {/* Proje Şablonları */}
         <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <button onClick={() => { setIsProjectsOpen(!isProjectsOpen); setPreviewMode('main'); }} className="w-full p-3 flex justify-between items-center text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
-            <span>🚀 Eski Projeler (Projelerim)</span>
+            <span>🚀 Proje Şablonları</span>
             {isProjectsOpen ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
           </button>
           {isProjectsOpen && (
-            <div className="p-3 space-y-4 border-t border-slate-200 dark:border-slate-800">
-              <button onClick={addProject} className="w-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded text-xs font-bold">+ Yeni Proje Ekle</button>
-              {(data.hero?.elements || []).filter((e: any) => e.type === 'project').map((proj: any) => (
-                <div key={proj.id} className="relative bg-white dark:bg-slate-950 p-2 rounded border border-slate-200 dark:border-slate-800 space-y-2">
-                  <button onClick={() => removeProject(proj.id)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4"/></button>
-                  <input value={proj.props.title || ""} onChange={e => updateProject(proj.id, "title", e.target.value)} className="w-[90%] p-1 text-xs border rounded bg-transparent" placeholder="Proje Adı" />
-                  
-                  <select value={proj.props.template || "1"} onChange={e => updateProject(proj.id, "template", e.target.value)} className="w-full p-1 text-xs border rounded bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300">
-                    <option value="1">Şablon 1: Klasik Modern Kart (İkonlu)</option>
-                    <option value="2">Şablon 2: Resimli Büyük Kapak (Banner)</option>
-                    <option value="3">Şablon 3: Minimalist Metin (Sade)</option>
-                    <option value="4">Şablon 4: Yatay Yerleşim (Resim Solda)</option>
-                    <option value="5">Şablon 5: Glassmorphism (Bulanık Efekt)</option>
-                  </select>
-
-                  <textarea value={proj.props.description || ""} onChange={e => updateProject(proj.id, "description", e.target.value)} className="w-full p-1 text-xs border rounded h-12 bg-transparent resize-none" placeholder="Proje Açıklaması" />
-                  <input value={proj.props.image || ""} onChange={e => updateProject(proj.id, "image", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Resim URL (Şablon 2, 4 ve 5 için)" />
-                  <input value={proj.props.url || ""} onChange={e => updateProject(proj.id, "url", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Proje Linki" />
-                </div>
-              ))}
+            <div className="p-3 space-y-2 border-t border-slate-200 dark:border-slate-800 flex flex-col">
+              <button onClick={() => addProject("1")} className="w-full text-left bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2 rounded text-xs font-bold hover:border-blue-500 transition">+ Klasik Modern Kart</button>
+              <button onClick={() => addProject("2")} className="w-full text-left bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2 rounded text-xs font-bold hover:border-purple-500 transition">+ Resimli Büyük Kapak</button>
+              <button onClick={() => addProject("3")} className="w-full text-left bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2 rounded text-xs font-bold hover:border-green-500 transition">+ Minimalist Metin</button>
+              <button onClick={() => addProject("4")} className="w-full text-left bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2 rounded text-xs font-bold hover:border-orange-500 transition">+ Yatay Yerleşim</button>
+              <button onClick={() => addProject("5")} className="w-full text-left bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2 rounded text-xs font-bold hover:border-pink-500 transition">+ Glassmorphism Efekt</button>
             </div>
           )}
         </div>
@@ -742,6 +728,28 @@ export default function AdminPage() {
                   <>
                     <div><label className="text-xs text-slate-500">Resim Linki (veya R2 URL)</label><input value={selectedCanvasEl.props.url || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "url", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
                     <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={selectedCanvasEl.props.rounded || false} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "rounded", e.target.checked)} /> Yuvarlak Yap</label>
+                  </>
+                )}
+
+                {selectedCanvasEl.type === 'project' && (
+                  <>
+                    <div><label className="text-xs text-slate-500">Proje Adı</label><input value={selectedCanvasEl.props.title || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "title", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" /></div>
+                    
+                    <div><label className="text-xs text-slate-500">Şablon Seçimi</label>
+                      <select value={selectedCanvasEl.props.template || "1"} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "template", e.target.value)} className="w-full p-1.5 text-xs border rounded bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300">
+                        <option value="1">Şablon 1: Klasik Modern Kart (İkonlu)</option>
+                        <option value="2">Şablon 2: Resimli Büyük Kapak (Banner)</option>
+                        <option value="3">Şablon 3: Minimalist Metin (Sade)</option>
+                        <option value="4">Şablon 4: Yatay Yerleşim (Resim Solda)</option>
+                        <option value="5">Şablon 5: Glassmorphism (Bulanık Efekt)</option>
+                      </select>
+                    </div>
+
+                    <div><label className="text-xs text-slate-500">Açıklama</label><textarea value={selectedCanvasEl.props.description || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "description", e.target.value)} className="w-full p-1.5 text-xs rounded border h-16 bg-white dark:bg-slate-950 resize-none" /></div>
+                    
+                    <div><label className="text-xs text-slate-500">Resim URL (Şablon 2, 4, 5 için)</label><input value={selectedCanvasEl.props.image || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "image", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" /></div>
+                    
+                    <div><label className="text-xs text-slate-500">Gidilecek Link (URL)</label><input value={selectedCanvasEl.props.url || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "url", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" /></div>
                   </>
                 )}
 
