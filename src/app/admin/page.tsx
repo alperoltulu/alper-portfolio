@@ -41,8 +41,9 @@ export default function AdminPage() {
   const [toast, setToast] = useState<{message: string, type: 'success'|'error'|'info'} | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null);
 
-  // Canvas Selection
+  // Canvas Selection & Clipboard
   const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
+  const [clipboard, setClipboard] = useState<CanvasElement | null>(null);
 
   const showToast = (message: string, type: 'success'|'error'|'info' = 'success') => {
     setToast({ message, type });
@@ -79,6 +80,54 @@ export default function AdminPage() {
 
     fetchMedia();
   }, []);
+
+  // Kısayol Tuşları (Kopyala, Yapıştır, Sil)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
+
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'c' || e.key === 'C') {
+          if (previewMode === 'main' && selectedCanvasId) {
+            const el = data.hero.elements.find(el => el.id === selectedCanvasId);
+            if (el) {
+              setClipboard(JSON.parse(JSON.stringify(el)));
+              showToast("Kopyalandı (Ctrl+C)", "info");
+            }
+          }
+        }
+        if (e.key === 'v' || e.key === 'V') {
+          if (previewMode === 'main' && clipboard) {
+            const newId = Math.random().toString(36).substr(2, 9);
+            const pastedElement = {
+              ...clipboard,
+              id: newId,
+              x: Math.min(95, clipboard.x + 3),
+              y: Math.min(95, clipboard.y + 3)
+            };
+            setData(prev => ({
+              ...prev,
+              hero: { ...prev.hero, elements: [...(prev.hero.elements || []), pastedElement] }
+            }));
+            setSelectedCanvasId(newId);
+            showToast("Yapıştırıldı (Ctrl+V)", "success");
+          }
+        }
+      } else {
+        if (e.key === 'Delete') {
+          if (previewMode === 'main' && selectedCanvasId) {
+            setData(prev => ({ ...prev, hero: { ...prev.hero, elements: prev.hero.elements.filter(el => el.id !== selectedCanvasId) } }));
+            setSelectedCanvasId(null);
+            showToast("Silindi (Del)", "info");
+          }
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewMode, selectedCanvasId, clipboard, data.hero.elements]);
+
 
   const handleSave = async () => {
     setIsSaving(true);

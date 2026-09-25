@@ -20,7 +20,9 @@ export default function CanvasEngine({
   onUpdateElement
 }: CanvasEngineProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  
   const [dragState, setDragState] = useState<{ id: string, startX: number, startY: number, startElemX: number, startElemY: number } | null>(null);
+  const [resizeState, setResizeState] = useState<{ id: string, startX: number, startY: number, startW: number, startH: number } | null>(null);
 
   const handlePointerDown = (e: React.PointerEvent, id: string, elX: number, elY: number) => {
     if (!isEditMode) return;
@@ -31,29 +33,64 @@ export default function CanvasEngine({
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
+  const handleResizeDown = (e: React.PointerEvent, el: CanvasElement) => {
+    if (!isEditMode) return;
+    e.stopPropagation();
+    if (onSelect) onSelect(el.id);
+
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
+    // Bounding client rect to measure current rendered dimensions if w/h are missing
+    const node = document.getElementById(`canvas-el-inner-${el.id}`);
+    const computedW = el.w || (node ? node.offsetWidth : 100);
+    const computedH = el.h || (node ? node.offsetHeight : 100);
+
+    setResizeState({
+      id: el.id,
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: computedW,
+      startH: computedH
+    });
+  };
+
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isEditMode || !dragState || !canvasRef.current || !onUpdateElement) return;
+    if (!isEditMode || !canvasRef.current || !onUpdateElement) return;
     
-    const rect = canvasRef.current.getBoundingClientRect();
-    const dx = e.clientX - dragState.startX;
-    const dy = e.clientY - dragState.startY;
+    if (dragState) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const dx = e.clientX - dragState.startX;
+      const dy = e.clientY - dragState.startY;
 
-    const dxPct = (dx / rect.width) * 100;
-    const dyPct = (dy / rect.height) * 100;
+      const dxPct = (dx / rect.width) * 100;
+      const dyPct = (dy / rect.height) * 100;
 
-    let newX = dragState.startElemX + dxPct;
-    let newY = dragState.startElemY + dyPct;
+      let newX = dragState.startElemX + dxPct;
+      let newY = dragState.startElemY + dyPct;
 
-    newX = Math.max(0, Math.min(100, newX));
-    newY = Math.max(0, Math.min(100, newY));
+      newX = Math.max(0, Math.min(100, newX));
+      newY = Math.max(0, Math.min(100, newY));
 
-    onUpdateElement(dragState.id, { x: newX, y: newY });
+      onUpdateElement(dragState.id, { x: newX, y: newY });
+    } else if (resizeState) {
+      const dx = e.clientX - resizeState.startX;
+      const dy = e.clientY - resizeState.startY;
+
+      const newW = Math.max(20, resizeState.startW + dx);
+      const newH = Math.max(20, resizeState.startH + dy);
+
+      onUpdateElement(resizeState.id, { w: newW, h: newH });
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (dragState) {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       setDragState(null);
+    }
+    if (resizeState) {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      setResizeState(null);
     }
   };
 
@@ -138,7 +175,10 @@ export default function CanvasEngine({
       case 'social':
         const dynamicLinks = el.props.links || [];
         return (
-          <div className="flex gap-2 p-2 bg-white/10 backdrop-blur-md rounded-2xl shadow-lg border border-white/20">
+          <div className="flex gap-2 p-2 bg-white/10 backdrop-blur-md rounded-2xl shadow-lg border border-white/20" style={{
+            width: el.w ? `${el.w}px` : 'auto',
+            height: el.h ? `${el.h}px` : 'auto'
+          }}>
             {dynamicLinks.map((link: any, i: number) => (
               <a key={i} href={isEditMode ? undefined : link.url} target="_blank" rel="noreferrer" onClick={e => isEditMode && e.preventDefault()}>
                 {link.logoUrl ? (
@@ -174,6 +214,10 @@ export default function CanvasEngine({
       ref={canvasRef}
       className={`absolute inset-0 w-full h-full overflow-hidden ${isEditMode ? 'z-40' : 'z-10 pointer-events-none'}`}
       onClick={handleCanvasClick}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onPointerLeave={handlePointerUp}
     >
       {elements.map(el => (
         <div
@@ -185,19 +229,23 @@ export default function CanvasEngine({
             zIndex: selectedId === el.id ? 50 : 10
           }}
           onPointerDown={(e) => handlePointerDown(e, el.id, el.x, el.y)}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
           onClick={(e) => {
             if (isEditMode) e.stopPropagation();
           }}
         >
-          {/* Seçim Çerçevesi */}
+          {/* Seçim Çerçevesi ve Boyutlandırma Tutamacı */}
           {isEditMode && selectedId === el.id && (
-            <div className="absolute -inset-3 border-2 border-dashed border-blue-500 rounded-lg pointer-events-none z-0" />
+            <>
+              <div className="absolute -inset-3 border-2 border-dashed border-blue-500 rounded-lg pointer-events-none z-0" />
+              <div 
+                className="absolute -right-4 -bottom-4 w-5 h-5 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:scale-110 transition-transform"
+                onPointerDown={(e) => handleResizeDown(e, el)}
+                title="Boyutlandırmak için sürükleyin"
+              />
+            </>
           )}
           
-          <div className="relative z-10">
+          <div id={`canvas-el-inner-${el.id}`} className="relative z-10 pointer-events-none flex items-center justify-center">
             {renderElementContent(el)}
           </div>
         </div>
