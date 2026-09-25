@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import HeroSection from "@/components/builder/HeroSection";
+import CanvasEngine from "@/components/builder/CanvasEngine";
+import HeroStatic from "@/components/builder/HeroStatic";
 import ProjectsSection from "@/components/builder/ProjectsSection";
 
 const DEFAULT_DATA = {
@@ -9,21 +10,14 @@ const DEFAULT_DATA = {
     avatarText: "A.",
     subtitle: "Alper Oltulu",
     title: "Fikirleri Koda,<br/>Kodları Geleceğe.",
-    description: "Modern web teknolojileri ve yenilikçi tasarımlarla sınırları zorluyorum."
+    description: "Modern web teknolojileri ve yenilikçi tasarımlarla sınırları zorluyorum.",
+    elements: []
   },
-  projects: [
-    {
-      title: "Mobil Uygulama APK",
-      desc: "Android için geliştirdiğim yenilikçi mobil uygulamam.",
-      demo: "#",
-      apk: "#",
-      color: "from-blue-500 to-cyan-500"
-    }
-  ]
+  projects: []
 };
 
 export default function Home() {
-  const [data, setData] = useState(DEFAULT_DATA);
+  const [data, setData] = useState<any>(DEFAULT_DATA);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -40,16 +34,22 @@ export default function Home() {
     return <div className="flex h-screen items-center justify-center text-slate-500">Yükleniyor...</div>;
   }
 
+  const displayElements = data.hero?.elements ? [...data.hero.elements] : [];
+  if (!displayElements.find((e: any) => e.type === 'hero')) {
+    displayElements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, props: {} });
+  }
+  if (!displayElements.find((e: any) => e.type === 'projects')) {
+    displayElements.push({ id: 'projects-block', type: 'projects', x: 50, y: 70, w: 1200, props: {} });
+  }
+
   return (
-    <main>
-      <HeroSection 
-        avatarText={data.hero.avatarText}
-        subtitle={data.hero.subtitle}
-        title={data.hero.title}
-        description={data.hero.description}
-        elements={data.hero.elements || []}
+    <main className="min-h-[200vh] w-full relative overflow-x-hidden">
+      <CanvasEngine 
+        elements={displayElements}
+        isEditMode={false}
+        heroNode={<HeroStatic {...data.hero} />}
+        projectsNode={<ProjectsSection projects={data.projects} />}
       />
-      <ProjectsSection projects={data.projects} />
     </main>
   );
 }

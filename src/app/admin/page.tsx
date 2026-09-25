@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import HeroSection from "@/components/builder/HeroSection";
+import HeroStatic from "@/components/builder/HeroStatic";
 import ProjectsSection from "@/components/builder/ProjectsSection";
 import BlockRenderer, { Block, BlockType } from "@/components/builder/BlockRenderer";
 import { CanvasElement, CanvasElementType } from "@/types/canvas";
@@ -13,7 +14,10 @@ const DEFAULT_DATA = {
     subtitle: "Alper Oltulu",
     title: "Fikirleri Koda,<br/>Kodları Geleceğe.",
     description: "Modern web teknolojileri ve yenilikçi tasarımlarla sınırları zorluyorum.",
-    elements: [] as CanvasElement[]
+    elements: [
+      { id: 'hero-block', type: 'hero' as CanvasElementType, x: 50, y: 15, w: 800, h: 400, props: {} },
+      { id: 'projects-block', type: 'projects' as CanvasElementType, x: 50, y: 70, w: 1200, h: 800, props: {} }
+    ] as CanvasElement[]
   },
   projects: []
 };
@@ -65,6 +69,12 @@ export default function AdminPage() {
       .then(res => {
         if (res.data) {
           if (!res.data.hero.elements) res.data.hero.elements = [];
+          if (!res.data.hero.elements.find((e: any) => e.type === 'hero')) {
+            res.data.hero.elements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, h: 400, props: {} });
+          }
+          if (!res.data.hero.elements.find((e: any) => e.type === 'projects')) {
+            res.data.hero.elements.push({ id: 'projects-block', type: 'projects', x: 50, y: 70, w: 1200, h: 800, props: {} });
+          }
           setData(res.data);
         }
       })
@@ -543,22 +553,29 @@ export default function AdminPage() {
           {previewMode === 'main' ? 'Ana Sayfa (Sürükle-Bırak Tuvali)' : 'Alt Sayfa (Dinamik) Tasarımı'}
         </div>
 
-        <div className="w-full min-h-full">
+        <div className="w-full min-h-[200vh]">
           {previewMode === 'main' ? (
-            <>
-              <HeroSection 
-                avatarText={data.hero.avatarText}
-                subtitle={data.hero.subtitle}
-                title={data.hero.title}
-                description={data.hero.description}
-                elements={data.hero.elements}
-                isEditMode={true}
-                selectedId={selectedCanvasId}
-                onSelect={setSelectedCanvasId}
-                onUpdateElement={updateCanvasElement}
-              />
-              <ProjectsSection projects={data.projects} />
-            </>
+            (() => {
+              const displayElements = data.hero?.elements ? [...data.hero.elements] : [];
+              if (!displayElements.find((e: any) => e.type === 'hero')) {
+                displayElements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, props: {} });
+              }
+              if (!displayElements.find((e: any) => e.type === 'projects')) {
+                displayElements.push({ id: 'projects-block', type: 'projects', x: 50, y: 70, w: 1200, props: {} });
+              }
+              
+              return (
+                <CanvasEngine 
+                  elements={displayElements}
+                  isEditMode={true}
+                  selectedId={selectedCanvasId}
+                  onSelect={setSelectedCanvasId}
+                  onUpdateElement={updateCanvasElement}
+                  heroNode={<HeroStatic {...data.hero} />}
+                  projectsNode={<ProjectsSection projects={data.projects} />}
+                />
+              );
+            })()
           ) : (
             <div className="py-20 px-8 max-w-4xl mx-auto min-h-screen">
               <h1 className="text-4xl font-black mb-10 text-purple-600">{editingPage.title || "Yeni Sayfa"}</h1>

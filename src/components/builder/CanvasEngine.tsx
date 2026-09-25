@@ -10,6 +10,9 @@ interface CanvasEngineProps {
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
   onUpdateElement?: (id: string, updates: Partial<CanvasElement>) => void;
+  globalData?: any; // To render hero and projects
+  heroNode?: React.ReactNode;
+  projectsNode?: React.ReactNode;
 }
 
 export default function CanvasEngine({
@@ -17,7 +20,10 @@ export default function CanvasEngine({
   isEditMode = false,
   selectedId = null,
   onSelect,
-  onUpdateElement
+  onUpdateElement,
+  globalData,
+  heroNode,
+  projectsNode
 }: CanvasEngineProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -198,6 +204,12 @@ export default function CanvasEngine({
             )}
           </div>
         );
+        
+      case 'hero':
+        return <div style={{ width: el.w ? `${el.w}px` : '100%', height: el.h ? `${el.h}px` : 'auto' }} className="pointer-events-none [&>*]:pointer-events-auto">{heroNode}</div>;
+        
+      case 'projects':
+        return <div style={{ width: el.w ? `${el.w}px` : '100%', height: el.h ? `${el.h}px` : 'auto' }} className="pointer-events-none [&>*]:pointer-events-auto w-[100vw] sm:w-[90vw] md:w-[80vw] lg:w-[1200px] max-w-full">{projectsNode}</div>;
 
       default:
         return <div>Bilinmeyen Araç</div>;
