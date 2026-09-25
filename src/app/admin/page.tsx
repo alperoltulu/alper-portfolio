@@ -262,7 +262,7 @@ export default function AdminPage() {
     hero: { 
       ...prev.hero, 
       elements: [
-        { id: 'proj-'+Math.random().toString(36).substr(2, 9), type: 'project' as CanvasElementType, x: 50, y: 100, w: 400, props: { title: "Yeni Proje", description: "", image: "", url: "", template: "1" } }, 
+        { id: 'proj-'+Math.random().toString(36).substr(2, 9), type: 'project' as CanvasElementType, x: 50, y: 5, w: 400, props: { title: "Yeni Proje", description: "", image: "", url: "", template: "1" } }, 
         ...(prev.hero.elements || [])
       ] 
     } 
@@ -282,7 +282,7 @@ export default function AdminPage() {
   // MAIN PAGE CANVAS BUILDER LOGIC
   const addCanvasElement = (type: CanvasElementType) => {
     const id = Math.random().toString(36).substr(2, 9);
-    const newElement: CanvasElement = { id, type, x: 50, y: 50, props: {} };
+    const newElement: CanvasElement = { id, type, x: 50, y: 5, props: {} };
     if (type === 'button') newElement.props = { label: "Yeni Buton" };
     if (type === 'shape') newElement.props = { shapeType: 'circle', color: '#db2777' };
     if (type === 'line') newElement.props = { color: '#cbd5e1' };
