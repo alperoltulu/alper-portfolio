@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import HeroSection from "@/components/builder/HeroSection";
+import CanvasEngine from "@/components/builder/CanvasEngine";
 import HeroStatic from "@/components/builder/HeroStatic";
 import ProjectsSection from "@/components/builder/ProjectsSection";
 import BlockRenderer, { Block, BlockType } from "@/components/builder/BlockRenderer";
