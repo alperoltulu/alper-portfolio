@@ -291,17 +291,20 @@ export default function AdminPage() {
 
         <div className="w-full min-h-full">
           {previewMode === 'main' ? (
-            <HeroSection 
-              avatarText={data.hero.avatarText}
-              subtitle={data.hero.subtitle}
-              title={data.hero.title}
-              description={data.hero.description}
-              elements={data.hero.elements}
-              isEditMode={true}
-              selectedId={selectedCanvasId}
-              onSelect={setSelectedCanvasId}
-              onUpdateElement={updateCanvasElement}
-            />
+            <>
+              <HeroSection 
+                avatarText={data.hero.avatarText}
+                subtitle={data.hero.subtitle}
+                title={data.hero.title}
+                description={data.hero.description}
+                elements={data.hero.elements}
+                isEditMode={true}
+                selectedId={selectedCanvasId}
+                onSelect={setSelectedCanvasId}
+                onUpdateElement={updateCanvasElement}
+              />
+              <ProjectsSection projects={data.projects} />
+            </>
           ) : (
             <div className="py-20 px-8 max-w-4xl mx-auto min-h-screen">
               <h1 className="text-4xl font-black mb-10 text-purple-600">{editingPage.title || "Yeni Sayfa"}</h1>
