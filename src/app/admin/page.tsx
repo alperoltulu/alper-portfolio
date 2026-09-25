@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import HeroSection from "@/components/builder/HeroSection";
 import ProjectsSection from "@/components/builder/ProjectsSection";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 const DEFAULT_DATA = {
   hero: {
@@ -29,6 +30,11 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  // Katlanabilir menü state'leri (Varsayılan olarak hepsi kapalı)
+  const [isHeroOpen, setIsHeroOpen] = useState(false);
+  const [isProjectsOpen, setIsProjectsOpen] = useState(false);
+  const [isDynamicOpen, setIsDynamicOpen] = useState(false);
 
   useEffect(() => {
     // Ana sayfa verisini cek
@@ -147,104 +153,141 @@ export default function AdminPage() {
         {message && <div className="p-3 bg-green-500/20 text-green-600 rounded-lg text-sm font-medium">{message}</div>}
 
         {/* Hero Form */}
-        <div className="space-y-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-          <h2 className="text-lg font-bold flex items-center gap-2">🎯 Karşılama Alanı</h2>
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <button 
+            onClick={() => setIsHeroOpen(!isHeroOpen)}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/50 transition"
+          >
+            <h2 className="text-lg font-bold flex items-center gap-2">🎯 Karşılama Alanı</h2>
+            {isHeroOpen ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
+          </button>
           
-          <div>
-            <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Logo / Harf</label>
-            <input value={data.hero.avatarText} onChange={e => handleHeroChange("avatarText", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Üst Başlık</label>
-            <input value={data.hero.subtitle} onChange={e => handleHeroChange("subtitle", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Ana Başlık (HTML Destekli)</label>
-            <textarea value={data.hero.title} onChange={e => handleHeroChange("title", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition h-20 resize-none" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Açıklama Yazısı</label>
-            <textarea value={data.hero.description} onChange={e => handleHeroChange("description", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition h-24 resize-none" />
-          </div>
+          {isHeroOpen && (
+            <div className="p-4 pt-0 space-y-4 border-t border-slate-100 dark:border-slate-800 mt-2">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Logo / Harf</label>
+                <input value={data.hero.avatarText} onChange={e => handleHeroChange("avatarText", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Üst Başlık</label>
+                <input value={data.hero.subtitle} onChange={e => handleHeroChange("subtitle", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Ana Başlık (HTML Destekli)</label>
+                <textarea value={data.hero.title} onChange={e => handleHeroChange("title", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition h-20 resize-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Açıklama Yazısı</label>
+                <textarea value={data.hero.description} onChange={e => handleHeroChange("description", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition h-24 resize-none" />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Projects Form */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <button 
+            onClick={() => setIsProjectsOpen(!isProjectsOpen)}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/50 transition"
+          >
             <h2 className="text-lg font-bold flex items-center gap-2">🚀 Projeler</h2>
-            <button onClick={addProject} className="text-xs bg-slate-200 dark:bg-slate-800 px-3 py-1 rounded-full font-bold hover:bg-pink-500 hover:text-white transition">
-              + Yeni Ekle
-            </button>
-          </div>
-
-          {data.projects.map((p, i) => (
-            <div key={i} className="space-y-3 bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 relative group">
-              <button onClick={() => removeProject(i)} className="absolute top-3 right-3 text-red-500 opacity-0 group-hover:opacity-100 transition text-xs font-bold">Sil</button>
-              
-              <div>
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Proje Adı</label>
-                <input value={p.title} onChange={e => updateProject(i, "title", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Açıklama</label>
-                <textarea value={p.desc} onChange={e => updateProject(i, "desc", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition h-16 resize-none" />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Demo Link</label>
-                  <input value={p.demo} onChange={e => updateProject(i, "demo", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">APK Link</label>
-                  <input value={p.apk || ""} onChange={e => updateProject(i, "apk", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Renk (Tailwind Gradients)</label>
-                <input value={p.color} onChange={e => updateProject(i, "color", e.target.value)} className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition font-mono text-xs" />
-              </div>
+            <div className="flex items-center gap-4">
+              <span className="text-xs bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded-full text-slate-500 font-bold">{data.projects.length} Proje</span>
+              {isProjectsOpen ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
             </div>
-          ))}
-        </div>
+          </button>
 
-        {/* Dynamic Pages Form */}
-        <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
-          <h2 className="text-xl font-bold flex items-center gap-2 text-purple-500">📄 Dinamik Sayfalar</h2>
-          
-          {/* List of existing pages */}
-          {pages.length > 0 && (
-            <div className="space-y-2">
-              {pages.map(p => (
-                <div key={p.slug} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+          {isProjectsOpen && (
+            <div className="p-4 pt-0 space-y-4 border-t border-slate-100 dark:border-slate-800 mt-2">
+              <div className="flex justify-end">
+                <button onClick={addProject} className="text-xs bg-slate-200 dark:bg-slate-800 px-3 py-1 rounded-full font-bold hover:bg-pink-500 hover:text-white transition">
+                  + Yeni Ekle
+                </button>
+              </div>
+
+              {data.projects.map((p, i) => (
+                <div key={i} className="space-y-3 bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800 relative group shadow-sm">
+                  <button onClick={() => removeProject(i)} className="absolute top-3 right-3 text-red-500 opacity-0 group-hover:opacity-100 transition text-xs font-bold">Sil</button>
+                  
                   <div>
-                    <div className="font-bold text-sm">{p.title}</div>
-                    <a href={`/p/${p.slug}`} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">/p/{p.slug}</a>
+                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Proje Adı</label>
+                    <input value={p.title} onChange={e => updateProject(i, "title", e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
                   </div>
-                  <button onClick={() => handleDeletePage(p.slug)} className="text-xs text-red-500 hover:bg-red-500/10 px-2 py-1 rounded">Sil</button>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Açıklama</label>
+                    <textarea value={p.desc} onChange={e => updateProject(i, "desc", e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition h-16 resize-none" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Demo Link</label>
+                      <input value={p.demo} onChange={e => updateProject(i, "demo", e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">APK Link</label>
+                      <input value={p.apk || ""} onChange={e => updateProject(i, "apk", e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Renk (Tailwind Gradients)</label>
+                    <input value={p.color} onChange={e => updateProject(i, "color", e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 transition font-mono text-xs" />
+                  </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
 
-          {/* Create new page form */}
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-2xl border border-purple-100 dark:border-purple-800/50 space-y-3">
-            <h3 className="font-bold text-sm text-purple-700 dark:text-purple-400">Yeni Sayfa Oluştur</h3>
-            <div>
-              <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Sayfa Linki (İngilizce karakter, boşluksuz)</label>
-              <input value={newPage.slug} onChange={e => setNewPage({...newPage, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-")})} placeholder="ornek: yeni-projem" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 transition" />
+        {/* Dynamic Pages Form */}
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden mt-6">
+          <button 
+            onClick={() => setIsDynamicOpen(!isDynamicOpen)}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-100 dark:hover:bg-slate-800/50 transition"
+          >
+            <h2 className="text-xl font-bold flex items-center gap-2 text-purple-500">📄 Dinamik Sayfalar</h2>
+            <div className="flex items-center gap-4">
+              <span className="text-xs bg-purple-100 dark:bg-purple-900/50 px-2 py-1 rounded-full text-purple-500 font-bold">{pages.length} Sayfa</span>
+              {isDynamicOpen ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
             </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Başlık</label>
-              <input value={newPage.title} onChange={e => setNewPage({...newPage, title: e.target.value})} placeholder="Benim Harika Projem" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 transition" />
+          </button>
+          
+          {isDynamicOpen && (
+            <div className="p-4 pt-0 space-y-4 border-t border-slate-100 dark:border-slate-800 mt-2">
+              {/* List of existing pages */}
+              {pages.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {pages.map(p => (
+                    <div key={p.slug} className="flex items-center justify-between p-3 bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div>
+                        <div className="font-bold text-sm">{p.title}</div>
+                        <a href={`/p/${p.slug}`} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">/p/{p.slug}</a>
+                      </div>
+                      <button onClick={() => handleDeletePage(p.slug)} className="text-xs text-red-500 hover:bg-red-500/10 px-2 py-1 rounded font-medium transition">Sil</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Create new page form */}
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-100 dark:border-purple-800/50 space-y-3">
+                <h3 className="font-bold text-sm text-purple-700 dark:text-purple-400 mb-2">Yeni Sayfa Oluştur</h3>
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Sayfa Linki (İngilizce, boşluksuz)</label>
+                  <input value={newPage.slug} onChange={e => setNewPage({...newPage, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-")})} placeholder="ornek: yeni-projem" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 transition" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Başlık</label>
+                  <input value={newPage.title} onChange={e => setNewPage({...newPage, title: e.target.value})} placeholder="Benim Harika Projem" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 transition" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">İçerik (HTML destekler)</label>
+                  <textarea value={newPage.content} onChange={e => setNewPage({...newPage, content: e.target.value})} placeholder="<p>Bu proje hakkında detaylar...</p>" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 transition h-32 resize-none" />
+                </div>
+                <button onClick={handleSavePage} className="w-full py-2.5 mt-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition shadow-lg shadow-purple-500/30">
+                  Sayfayı Oluştur / Güncelle
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">İçerik (HTML destekler)</label>
-              <textarea value={newPage.content} onChange={e => setNewPage({...newPage, content: e.target.value})} placeholder="<p>Bu proje hakkında detaylar...</p>" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 transition h-32 resize-none" />
-            </div>
-            <button onClick={handleSavePage} className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition shadow-lg shadow-purple-500/30">
-              Sayfayı Oluştur / Güncelle
-            </button>
-          </div>
+          )}
         </div>
       </div>
 
