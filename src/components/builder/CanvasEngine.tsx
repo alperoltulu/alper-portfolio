@@ -242,14 +242,28 @@ export default function CanvasEngine({
 
   return (
     <div 
-      ref={canvasRef}
-      className={`absolute inset-0 w-full h-full overflow-hidden ${isEditMode ? 'z-40' : 'z-10 pointer-events-none'}`}
+      className={`absolute inset-0 w-full h-full flex justify-center ${isEditMode ? 'z-40 overflow-auto' : 'z-10 pointer-events-none overflow-hidden'}`}
       onClick={handleCanvasClick}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
+      <div 
+        ref={canvasRef}
+        className="relative w-[1200px] h-full shrink-0"
+        style={!isEditMode ? { 
+          transform: 'scale(var(--canvas-scale, 1))', 
+          transformOrigin: 'top center' 
+        } : {}}
+      >
+        <style>{`
+          @media (max-width: 1200px) {
+            :root {
+              --canvas-scale: calc(100vw / 1200);
+            }
+          }
+        `}</style>
       {/* Guide Lines */}
       {guideLines?.x !== undefined && (
         <div className="absolute top-0 bottom-0 border-l border-red-500 z-50 pointer-events-none" style={{ left: `${guideLines.x}%` }} />
@@ -289,6 +303,7 @@ export default function CanvasEngine({
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }
