@@ -1,6 +1,7 @@
 "use client";
 import { builder } from "@builder.io/sdk";
 import { BuilderComponent, useIsPreviewing } from "@builder.io/react";
+import "../builder-registry";
 
 builder.init("c37efdc701164072a49340387b858505");
 
