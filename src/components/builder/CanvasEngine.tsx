@@ -139,13 +139,28 @@ export default function CanvasEngine({
     e.preventDefault();
   };
 
+  const handleLinkClick = (e: React.MouseEvent, url?: string) => {
+    if (isEditMode) {
+      e.preventDefault();
+      return;
+    }
+    if (url) {
+      e.preventDefault();
+      if (url.startsWith('http')) {
+        window.open(url, '_blank');
+      } else {
+        window.location.href = url;
+      }
+    }
+  };
+
   const renderElementContent = (el: CanvasElement) => {
     switch (el.type) {
       case 'button':
         return (
           <a 
             href={isEditMode ? undefined : (el.props.url || "#")}
-            onClick={e => isEditMode && e.preventDefault()}
+            onClick={(e) => handleLinkClick(e, el.props.url)}
             className="inline-flex items-center justify-center px-6 py-3 font-bold rounded-full transition-all shadow-lg whitespace-nowrap overflow-hidden gap-3"
             style={{ 
               background: el.props.color || 'linear-gradient(to right, #2563eb, #db2777)',
@@ -193,17 +208,22 @@ export default function CanvasEngine({
 
       case 'logo':
         const isImageLogo = !!el.props.image;
-        const logoUrl = !isEditMode && el.props.url ? el.props.url : undefined;
+        const logoUrl = !isEditMode ? (el.props.url || undefined) : undefined;
         return (
           <a 
             href={logoUrl}
-            onClick={e => isEditMode && e.preventDefault()}
-            className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-900/20 rotate-[-5deg] hover:rotate-0 transition-all border-4 border-white dark:border-slate-800 overflow-hidden relative cursor-pointer group block"
+            onClick={(e) => handleLinkClick(e, el.props.url)}
+            className="bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-900/20 rotate-[-5deg] hover:rotate-0 transition-all border-4 border-white dark:border-slate-800 overflow-hidden relative cursor-pointer group block"
+            style={{
+              width: el.w ? `${el.w}px` : '80px',
+              height: el.h ? `${el.h}px` : '80px',
+              textDecoration: 'none'
+            }}
           >
             {isImageLogo ? (
               <img src={el.props.image} alt="logo" className="w-full h-full object-cover" />
             ) : (
-              <span className="group-hover:scale-110 transition-transform">{el.props.text || "A."}</span>
+              <span className="group-hover:scale-110 transition-transform" style={{ fontSize: el.w ? `${el.w / 2.5}px` : '30px' }}>{el.props.text || "A."}</span>
             )}
             <div className="absolute inset-0 rounded-[2rem] ring-inset ring-2 ring-white/20 pointer-events-none"></div>
           </a>
