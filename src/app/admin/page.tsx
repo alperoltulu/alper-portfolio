@@ -460,7 +460,7 @@ export default function AdminPage() {
       )}
 
       {/* SOL SÜTUN: CMS Veri Yönetimi */}
-      <div className="w-[25%] min-w-[320px] max-w-[400px] h-full bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 overflow-y-auto p-4 shadow-xl z-20 flex flex-col gap-4">
+      <div className="w-[15%] min-w-[280px] max-w-[300px] h-full bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 overflow-y-auto p-4 shadow-xl z-20 flex flex-col gap-4">
         <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-pink-500 cursor-pointer pb-2 border-b border-slate-100 dark:border-slate-800" onClick={() => setPreviewMode('main')}>
           Alper CMS
         </h1>
@@ -614,7 +614,7 @@ export default function AdminPage() {
       </div>
 
       {/* SAĞ SÜTUN: Araçlar ve Dosya Yöneticisi */}
-      <div className="w-[25%] min-w-[320px] h-full bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 p-4 shadow-2xl z-30 flex flex-col overflow-y-auto">
+      <div className="w-[15%] min-w-[280px] max-w-[300px] h-full bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 p-4 shadow-2xl z-30 flex flex-col overflow-y-auto">
         <button 
           onClick={previewMode === 'main' ? handleSave : handleSavePage}
           disabled={isSaving}
