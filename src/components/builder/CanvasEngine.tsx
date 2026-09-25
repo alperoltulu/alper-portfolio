@@ -162,10 +162,13 @@ export default function CanvasEngine({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          onClick={(e) => {
+            if (isEditMode) e.stopPropagation();
+          }}
         >
           {/* Seçim Çerçevesi (Sadece Edit Modunda) */}
           {isEditMode && selectedId === el.id && (
-            <div className="absolute -inset-2 border-2 border-dashed border-blue-500 rounded-lg pointer-events-none animate-pulse z-0" />
+            <div className="absolute -inset-3 border-2 border-dashed border-blue-500 rounded-lg pointer-events-none z-0" />
           )}
           
           <div className="relative z-10">
