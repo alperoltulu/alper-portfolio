@@ -379,7 +379,7 @@ export default function AdminPage() {
   };
 
   if (isLoading) return <div className="p-10 text-center">Yükleniyor...</div>;
-  const selectedCanvasEl = data.hero.elements?.find(el => el.id === selectedCanvasId);
+
 
   return (
     <div className="flex w-full h-screen bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 overflow-hidden font-sans relative">
