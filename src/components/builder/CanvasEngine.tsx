@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { CanvasElement } from '@/types/canvas';
 import ProjectCard from './ProjectCard';
 // Removed missing icons
@@ -146,7 +147,13 @@ export default function CanvasEngine({
     }
     if (url) {
       e.preventDefault();
-      if (url.startsWith('http')) {
+      if (url.startsWith('#')) {
+        const targetId = url.substring(1);
+        const target = document.getElementById(targetId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } else if (url.startsWith('http')) {
         window.open(url, '_blank');
       } else {
         window.location.href = url;
@@ -323,6 +330,29 @@ export default function CanvasEngine({
     }
   };
 
+  const getAnimationProps = (el: CanvasElement) => {
+    if (isEditMode || !el.props.animationType || el.props.animationType === 'none') return {};
+    
+    const delay = el.props.animationDelay || 0;
+    let initial: any = { opacity: 0 };
+    let whileInView: any = { opacity: 1 };
+    
+    switch(el.props.animationType) {
+      case 'fade-in': break;
+      case 'slide-up': initial.y = 50; whileInView.y = 0; break;
+      case 'slide-left': initial.x = 50; whileInView.x = 0; break;
+      case 'slide-right': initial.x = -50; whileInView.x = 0; break;
+      case 'zoom-in': initial.scale = 0.5; whileInView.scale = 1; break;
+    }
+    
+    return {
+      initial,
+      whileInView,
+      viewport: { once: true, margin: "-50px" },
+      transition: { duration: 0.6, delay, ease: "easeOut" }
+    };
+  };
+
   return (
     <div 
       className={`absolute inset-0 w-full h-full flex justify-center ${isEditMode ? 'z-40 overflow-auto' : 'z-10 pointer-events-none overflow-hidden'}`}
@@ -383,9 +413,13 @@ export default function CanvasEngine({
             </>
           )}
           
-          <div id={`canvas-el-inner-${el.id}`} className="relative z-10 pointer-events-none flex items-center justify-center">
+          <motion.div 
+            id={el.props.anchorId || el.id} 
+            className="relative z-10 pointer-events-none flex items-center justify-center"
+            {...getAnimationProps(el)}
+          >
             {renderElementContent(el)}
-          </div>
+          </motion.div>
         </div>
       ))}
       </div>

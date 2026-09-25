@@ -6,7 +6,7 @@ import CanvasEngine from "@/components/builder/CanvasEngine";
 import HeroStatic from "@/components/builder/HeroStatic";
 import BlockRenderer, { Block, BlockType } from "@/components/builder/BlockRenderer";
 import { CanvasElement, CanvasElementType } from "@/types/canvas";
-import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Minus, UploadCloud, Copy, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Minus, UploadCloud, Copy, X, Info } from "lucide-react";
 
 const DEFAULT_DATA = {
   hero: {
@@ -810,6 +810,54 @@ export default function AdminPage() {
                     ))}
                   </div>
                 )}
+
+                {/* --- ORTAK AYARLAR (ANIMASYON VE ANCHOR) --- */}
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Gelişmiş Ayarlar</h4>
+                  
+                  <div>
+                    <label className="text-xs text-slate-500 flex items-center gap-1" title="Örn: hakkimda. Başka bir butondan '#hakkimda' linki vererek sayfayı buraya kaydırabilirsiniz.">
+                      Bağlantı Çapası (Anchor ID) <Info className="w-3 h-3"/>
+                    </label>
+                    <input 
+                      value={selectedCanvasEl.props.anchorId || ""} 
+                      onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "anchorId", e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))} 
+                      placeholder="Örn: projeler, hakkimda" 
+                      className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-500">Giriş Animasyonu</label>
+                    <select 
+                      value={selectedCanvasEl.props.animationType || 'none'} 
+                      onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "animationType", e.target.value)} 
+                      className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950"
+                    >
+                      <option value="none">Animasyon Yok</option>
+                      <option value="fade-in">Karararak Belirme (Fade In)</option>
+                      <option value="slide-up">Aşağıdan Yukarı (Slide Up)</option>
+                      <option value="slide-left">Sağdan Sola (Slide Left)</option>
+                      <option value="slide-right">Soldan Sağa (Slide Right)</option>
+                      <option value="zoom-in">Büyüyerek Gelme (Zoom In)</option>
+                    </select>
+                  </div>
+
+                  {selectedCanvasEl.props.animationType && selectedCanvasEl.props.animationType !== 'none' && (
+                    <div>
+                      <label className="text-xs text-slate-500">Animasyon Gecikmesi (Saniye)</label>
+                      <input 
+                        type="number" 
+                        step="0.1" 
+                        min="0"
+                        value={selectedCanvasEl.props.animationDelay || 0} 
+                        onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "animationDelay", Number(e.target.value))} 
+                        className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" 
+                      />
+                    </div>
+                  )}
+                </div>
+
               </div>
             ) : (
               <div className="text-xs text-slate-400 text-center mt-10">Tuvalden bir şekle tıklayın veya araç ekleyin.</div>
