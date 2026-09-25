@@ -27,7 +27,6 @@ export default function AdminPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState("");
 
   const [isHeroOpen, setIsHeroOpen] = useState(true);
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
@@ -38,8 +37,17 @@ export default function AdminPage() {
   const [mediaFiles, setMediaFiles] = useState<{key: string, size: number}[]>([]);
   const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
 
+  // Custom UI Dialogs
+  const [toast, setToast] = useState<{message: string, type: 'success'|'error'|'info'} | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null);
+
   // Canvas Selection
   const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
+
+  const showToast = (message: string, type: 'success'|'error'|'info' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchMedia = () => {
     fetch("/api/files")
@@ -74,24 +82,25 @@ export default function AdminPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setMessage("");
     try {
       const res = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ data })
       });
-      if (res.ok) setMessage("✅ Başarıyla kaydedildi!");
-      else setMessage("❌ Kaydetme başarısız.");
+      if (res.ok) showToast("Ana sayfa başarıyla yayınlandı!", "success");
+      else showToast("Kaydetme başarısız.", "error");
     } catch (e) {
-      setMessage("❌ Hata oluştu.");
+      showToast("Bir hata oluştu.", "error");
     }
     setIsSaving(false);
-    setTimeout(() => setMessage(""), 3000);
   };
 
   const handleSavePage = async () => {
-    if (!editingPage.slug || !editingPage.title) return alert("Link ve Başlık zorunludur!");
+    if (!editingPage.slug || !editingPage.title) {
+      showToast("Link ve Başlık zorunludur!", "error");
+      return;
+    }
     try {
       const payload = {
         slug: editingPage.slug,
@@ -104,24 +113,32 @@ export default function AdminPage() {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        alert("Sayfa başarıyla kaydedildi!");
+        showToast("Sayfa başarıyla yayınlandı!", "success");
         setPages([...pages.filter(p => p.slug !== payload.slug), payload]);
         setEditingPage({ slug: "", title: "", blocks: [] });
         setPreviewMode('main');
       }
     } catch (e) {
-      alert("Hata oluştu.");
+      showToast("Hata oluştu.", "error");
     }
   };
 
   const handleDeletePage = async (slug: string) => {
-    if (!confirm("Silmek istediğinize emin misiniz?")) return;
-    try {
-      const res = await fetch(`/api/pages?slug=${slug}`, { method: "DELETE" });
-      if (res.ok) {
-        setPages(pages.filter(p => p.slug !== slug));
+    setConfirmDialog({
+      message: `"${slug}" sayfasını silmek istediğinize emin misiniz?`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const res = await fetch(`/api/pages?slug=${slug}`, { method: "DELETE" });
+          if (res.ok) {
+            setPages(pages.filter(p => p.slug !== slug));
+            showToast("Sayfa silindi.", "success");
+          }
+        } catch (e) {
+          showToast("Silinemedi.", "error");
+        }
       }
-    } catch (e) {}
+    });
   };
 
   const loadPageForEdit = (page: {slug: string, title: string, content: string}) => {
@@ -201,56 +218,89 @@ export default function AdminPage() {
       const r = await res.json();
       if (r.url) {
         fetchMedia(); // Refresh list
+        showToast("Dosya başarıyla yüklendi!", "success");
       } else {
-        alert("Yükleme hatası: " + (r.error || "Bilinmeyen hata"));
+        showToast("Yükleme hatası: " + (r.error || "Bilinmeyen hata"), "error");
       }
     } catch(err) {
-      alert("Sunucuya bağlanılamadı.");
+      showToast("Sunucuya bağlanılamadı.", "error");
     }
     setUploading(false);
   };
 
   const copyToClipboard = (url: string) => {
     navigator.clipboard.writeText(url);
-    alert("Kopyalandı: " + url);
+    showToast("URL Başarıyla Kopyalandı!", "success");
   };
 
-  const handleDeleteFile = async (key: string) => {
-    if (!confirm(`Bu dosyayı tamamen silmek istediğinize emin misiniz?\n${key}`)) return;
-    try {
-      const res = await fetch(`/api/files?key=${encodeURIComponent(key)}`, { method: "DELETE" });
-      if (res.ok) {
-        setMediaFiles(prev => prev.filter(f => f.key !== key));
-      } else {
-        alert("Silinirken bir hata oluştu.");
+  const handleDeleteFile = (key: string) => {
+    setConfirmDialog({
+      message: `"${key}" dosyasını kalıcı olarak silmek istediğinize emin misiniz?`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const res = await fetch(`/api/files?key=${encodeURIComponent(key)}`, { method: "DELETE" });
+          if (res.ok) {
+            setMediaFiles(prev => prev.filter(f => f.key !== key));
+            showToast("Dosya kalıcı olarak silindi.", "success");
+          } else {
+            showToast("Silinirken bir hata oluştu.", "error");
+          }
+        } catch(e) {
+          showToast("Sunucuya ulaşılamadı.", "error");
+        }
       }
-    } catch(e) {
-      alert("Sunucuya ulaşılamadı.");
-    }
+    });
   };
 
   if (isLoading) return <div className="p-10 text-center">Yükleniyor...</div>;
   const selectedCanvasEl = data.hero.elements?.find(el => el.id === selectedCanvasId);
 
   return (
-    <div className="flex w-full h-screen bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 overflow-hidden font-sans">
+    <div className="flex w-full h-screen bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 overflow-hidden font-sans relative">
       
+      {/* GLOBAL TOAST NOTIFICATION */}
+      {toast && (
+        <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl font-bold text-white z-[300] transition-all animate-bounce ${toast.type === 'success' ? 'bg-green-600' : toast.type === 'error' ? 'bg-red-600' : 'bg-blue-600'}`}>
+          {toast.message}
+        </div>
+      )}
+
+      {/* GLOBAL CONFIRM DIALOG */}
+      {confirmDialog && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[300] flex items-center justify-center p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-black text-slate-800 dark:text-white mb-2">Emin misiniz?</h3>
+              <p className="text-sm text-slate-500 mb-6">{confirmDialog.message}</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={() => setConfirmDialog(null)} className="px-4 py-2 rounded-lg font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition">İptal</button>
+                <button onClick={confirmDialog.onConfirm} className="px-4 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-lg shadow-red-500/30">Evet, Sil</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MEDYA YÖNETİCİSİ POPUP (MODAL) */}
       {isFileManagerOpen && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-          <div className="bg-white dark:bg-slate-950 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 relative">
+          <div className="bg-white dark:bg-slate-950 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 relative animate-in fade-in zoom-in-95 duration-200">
             
             {/* Modal Header */}
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
               <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
-                <UploadCloud className="text-blue-500 w-6 h-6" /> Medya Deposu (R2) Tüm Dosyalar
+                <UploadCloud className="text-blue-500 w-6 h-6" /> Medya Deposu (R2)
               </h2>
               <div className="flex items-center gap-4">
                 <label className={`px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition text-sm font-bold shadow-md ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                  {uploading ? 'Yükleniyor...' : '+ Yeni Dosya Yükle'}
+                  {uploading ? 'Yükleniyor...' : '+ Yeni Yükle'}
                   <input type="file" className="hidden" onChange={handleFileUpload} />
                 </label>
-                <button onClick={() => setIsFileManagerOpen(false)} className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 font-bold transition">
+                <button onClick={() => setIsFileManagerOpen(false)} className="w-8 h-8 flex items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full hover:bg-red-100 hover:text-red-600 transition font-bold">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -264,24 +314,36 @@ export default function AdminPage() {
                   const isImage = ['JPG','JPEG','PNG','GIF','WEBP','SVG'].includes(ext);
                   const url = `/cdn/${file.key}`;
                   return (
-                    <div key={file.key} className="relative group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition">
-                      <div className="aspect-square flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-2 cursor-pointer" onClick={() => copyToClipboard(window.location.origin + url)}>
+                    <div key={file.key} className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition flex flex-col">
+                      
+                      {/* Tıklanabilir Üst Alan (Kopyalama için) */}
+                      <div 
+                        className="relative aspect-square flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-2 cursor-pointer" 
+                        onClick={(e) => { e.stopPropagation(); copyToClipboard(window.location.origin + url); }}
+                      >
                         {isImage ? (
-                          <img src={url} alt={file.key} className="w-full h-full object-cover rounded-lg shadow-inner" />
+                          <img src={url} alt={file.key} className="w-full h-full object-cover rounded-lg shadow-inner pointer-events-none" />
                         ) : (
-                          <div className="font-black text-slate-300 dark:text-slate-700 text-4xl">{ext}</div>
+                          <div className="font-black text-slate-300 dark:text-slate-700 text-4xl pointer-events-none">{ext}</div>
                         )}
                         <div className="absolute inset-0 bg-blue-600/80 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition gap-2">
-                          <Copy className="w-8 h-8 text-white" />
-                          <span className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-full">URL Kopyala</span>
+                          <Copy className="w-8 h-8 text-white pointer-events-none" />
+                          <span className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-full pointer-events-none">URL Kopyala</span>
                         </div>
                       </div>
-                      <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+
+                      {/* Alt Bilgi ve Silme Butonu */}
+                      <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 z-10">
                         <div className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate w-[75%]" title={file.key}>{file.key}</div>
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.key); }} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-md transition" title="Dosyayı Sil">
+                        <button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteFile(file.key); }} 
+                          className="p-1.5 text-red-500 hover:bg-red-500 hover:text-white rounded-md transition border border-transparent hover:border-red-600" 
+                          title="Dosyayı Sil"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
+
                     </div>
                   )
                 })}
@@ -386,7 +448,7 @@ export default function AdminPage() {
       </div>
 
       {/* ORTA SÜTUN: Canlı Tuval */}
-      <div className="flex-1 h-full relative overflow-y-auto bg-slate-50 dark:bg-slate-950 pattern-grid">
+      <div className="flex-1 h-full relative overflow-y-auto bg-slate-50 dark:bg-slate-950 pattern-grid z-10">
         <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900/80 backdrop-blur rounded-full text-xs text-white font-mono uppercase z-50 shadow-lg flex items-center gap-3">
           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
           {previewMode === 'main' ? 'Ana Sayfa (Sürükle-Bırak Tuvali)' : 'Alt Sayfa (Dinamik) Tasarımı'}
@@ -445,13 +507,17 @@ export default function AdminPage() {
               const isImage = ['JPG','JPEG','PNG','GIF','WEBP','SVG'].includes(ext);
               const url = `/cdn/${file.key}`;
               return (
-                <div key={file.key} onClick={() => copyToClipboard(window.location.origin + url)} className="relative group rounded overflow-hidden border border-slate-200 dark:border-slate-800 aspect-square flex items-center justify-center bg-white dark:bg-slate-950 cursor-pointer shadow-sm">
+                <div 
+                  key={file.key} 
+                  onClick={(e) => { e.stopPropagation(); copyToClipboard(window.location.origin + url); }} 
+                  className="relative group rounded overflow-hidden border border-slate-200 dark:border-slate-800 aspect-square flex items-center justify-center bg-white dark:bg-slate-950 cursor-pointer shadow-sm hover:border-blue-500"
+                >
                   {isImage ? (
-                    <img src={url} alt={file.key} className="w-full h-full object-cover" />
+                    <img src={url} alt={file.key} className="w-full h-full object-cover pointer-events-none" />
                   ) : (
-                    <div className="font-bold text-slate-400 text-[10px]">{ext}</div>
+                    <div className="font-bold text-slate-400 text-[10px] pointer-events-none">{ext}</div>
                   )}
-                  <div className="absolute inset-0 bg-blue-600/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                  <div className="absolute inset-0 bg-blue-600/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition pointer-events-none">
                     <Copy className="w-4 h-4 text-white" />
                   </div>
                 </div>
