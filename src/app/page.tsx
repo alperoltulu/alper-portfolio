@@ -64,7 +64,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-[200vh] w-full relative overflow-x-hidden">
+    <main className="h-[4000px] w-full relative overflow-x-hidden">
       <CanvasEngine 
         elements={displayElements}
         isEditMode={false}

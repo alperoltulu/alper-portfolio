@@ -585,7 +585,7 @@ export default function AdminPage() {
           {previewMode === 'main' ? 'Ana Sayfa (Sürükle-Bırak Tuvali)' : 'Alt Sayfa (Dinamik) Tasarımı'}
         </div>
 
-        <div className="w-full min-h-[200vh]">
+        <div className="w-full h-[4000px]">
           {previewMode === 'main' ? (
             (() => {
               const displayElements = data.hero?.elements ? [...data.hero.elements] : [];
