@@ -5,7 +5,7 @@ import HeroSection from "@/components/builder/HeroSection";
 import ProjectsSection from "@/components/builder/ProjectsSection";
 import BlockRenderer, { Block, BlockType } from "@/components/builder/BlockRenderer";
 import { CanvasElement, CanvasElementType } from "@/types/canvas";
-import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Minus, UploadCloud, Copy, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Minus, UploadCloud, Copy } from "lucide-react";
 
 const DEFAULT_DATA = {
   hero: {
@@ -36,7 +36,6 @@ export default function AdminPage() {
   // File Manager State
   const [uploading, setUploading] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{key: string, size: number}[]>([]);
-  const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
 
   // Canvas Selection
   const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
@@ -139,6 +138,17 @@ export default function AdminPage() {
 
   // Generic Update Helpers
   const handleHeroChange = (field: string, value: any) => setData(prev => ({ ...prev, hero: { ...prev.hero, [field]: value } }));
+  const updateProject = (index: number, field: string, value: string) => {
+    const newProjects = [...data.projects];
+    newProjects[index] = { ...newProjects[index], [field]: value };
+    setData(prev => ({ ...prev, projects: newProjects }));
+  };
+  const addProject = () => setData(prev => ({ ...prev, projects: [...prev.projects, { title: "Yeni Proje", desc: "Açıklama...", demo: "", apk: "", color: "from-gray-500 to-gray-700" }] }));
+  const removeProject = (index: number) => {
+    const newProjects = [...data.projects];
+    newProjects.splice(index, 1);
+    setData(prev => ({ ...prev, projects: newProjects }));
+  };
 
   // DYNAMIC PAGE BUILDER LOGIC
   const addDynamicBlock = (type: BlockType) => {
@@ -215,88 +225,12 @@ export default function AdminPage() {
     alert("Kopyalandı: " + url);
   };
 
-  const handleDeleteFile = async (key: string) => {
-    if (!confirm(`Bu dosyayı tamamen silmek istediğinize emin misiniz?\n${key}`)) return;
-    try {
-      const res = await fetch(`/api/files?key=${encodeURIComponent(key)}`, { method: "DELETE" });
-      if (res.ok) {
-        setMediaFiles(prev => prev.filter(f => f.key !== key));
-      } else {
-        alert("Silinirken bir hata oluştu.");
-      }
-    } catch(e) {
-      alert("Sunucuya ulaşılamadı.");
-    }
-  };
-
   if (isLoading) return <div className="p-10 text-center">Yükleniyor...</div>;
   const selectedCanvasEl = data.hero.elements?.find(el => el.id === selectedCanvasId);
 
   return (
     <div className="flex w-full h-screen bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 overflow-hidden font-sans">
       
-      {/* MEDYA YÖNETİCİSİ POPUP (MODAL) */}
-      {isFileManagerOpen && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-          <div className="bg-white dark:bg-slate-950 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 relative">
-            
-            {/* Modal Header */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
-              <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
-                <UploadCloud className="text-blue-500 w-6 h-6" /> Medya Deposu (R2) Tüm Dosyalar
-              </h2>
-              <div className="flex items-center gap-4">
-                <label className={`px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition text-sm font-bold shadow-md ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                  {uploading ? 'Yükleniyor...' : '+ Yeni Dosya Yükle'}
-                  <input type="file" className="hidden" onChange={handleFileUpload} />
-                </label>
-                <button onClick={() => setIsFileManagerOpen(false)} className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 font-bold transition">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-100 dark:bg-slate-950">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {mediaFiles.map(file => {
-                  const ext = file.key.split('.').pop()?.toUpperCase() || '?';
-                  const isImage = ['JPG','JPEG','PNG','GIF','WEBP','SVG'].includes(ext);
-                  const url = `/cdn/${file.key}`;
-                  return (
-                    <div key={file.key} className="relative group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition">
-                      <div className="aspect-square flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-2 cursor-pointer" onClick={() => copyToClipboard(window.location.origin + url)}>
-                        {isImage ? (
-                          <img src={url} alt={file.key} className="w-full h-full object-cover rounded-lg shadow-inner" />
-                        ) : (
-                          <div className="font-black text-slate-300 dark:text-slate-700 text-4xl">{ext}</div>
-                        )}
-                        <div className="absolute inset-0 bg-blue-600/80 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition gap-2">
-                          <Copy className="w-8 h-8 text-white" />
-                          <span className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-full">URL Kopyala</span>
-                        </div>
-                      </div>
-                      <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                        <div className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate w-[75%]" title={file.key}>{file.key}</div>
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.key); }} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-md transition" title="Dosyayı Sil">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              {mediaFiles.length === 0 && (
-                <div className="text-center py-20 text-slate-400 font-bold text-xl flex flex-col items-center gap-4">
-                  <UploadCloud className="w-16 h-16 opacity-20" />
-                  Henüz yüklenmiş medya yok.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* SOL SÜTUN: CMS Veri Yönetimi */}
       <div className="w-[25%] min-w-[320px] max-w-[400px] h-full bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 overflow-y-auto p-4 shadow-xl z-20 flex flex-col gap-4">
         <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-pink-500 cursor-pointer pb-2 border-b border-slate-100 dark:border-slate-800" onClick={() => setPreviewMode('main')}>
@@ -427,20 +361,18 @@ export default function AdminPage() {
           {isSaving ? "Kaydediliyor..." : (previewMode === 'main' ? "Ana Sayfayı YAYINLA" : "Alt Sayfayı YAYINLA")}
         </button>
 
-        {/* Dosya Yöneticisi (R2) Galerisi - KÜÇÜK VERSİYON */}
+        {/* Dosya Yöneticisi (R2) Galerisi */}
         <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
           <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
-            <span className="flex items-center gap-2 cursor-pointer hover:text-blue-500 transition" onClick={() => setIsFileManagerOpen(true)}>
-              <UploadCloud className="w-4 h-4 text-blue-500" /> Medya Deposu
-            </span>
-            <label className={`px-2 py-1 bg-blue-100 text-blue-600 rounded cursor-pointer hover:bg-blue-200 transition text-[10px] font-bold ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-              {uploading ? '...' : '+ Yükle'}
+            <span className="flex items-center gap-2"><UploadCloud className="w-4 h-4 text-blue-500" /> Medya Deposu (R2)</span>
+            <label className={`px-3 py-1 bg-blue-100 text-blue-600 rounded cursor-pointer hover:bg-blue-200 transition text-[10px] font-bold ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              {uploading ? 'Yükleniyor' : '+ Yükle'}
               <input type="file" className="hidden" onChange={handleFileUpload} />
             </label>
           </h3>
           
-          <div className="grid grid-cols-3 gap-2 mt-4">
-            {mediaFiles.slice(0, 6).map(file => {
+          <div className="grid grid-cols-3 gap-2 mt-4 max-h-48 overflow-y-auto pr-1">
+            {mediaFiles.map(file => {
               const ext = file.key.split('.').pop()?.toUpperCase() || '?';
               const isImage = ['JPG','JPEG','PNG','GIF','WEBP','SVG'].includes(ext);
               const url = `/cdn/${file.key}`;
@@ -449,26 +381,24 @@ export default function AdminPage() {
                   {isImage ? (
                     <img src={url} alt={file.key} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="font-bold text-slate-400 text-[10px]">{ext}</div>
+                    <div className="font-bold text-slate-400 text-xs">{ext}</div>
                   )}
                   <div className="absolute inset-0 bg-blue-600/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                    <Copy className="w-4 h-4 text-white" />
+                    <Copy className="w-5 h-5 text-white" />
+                  </div>
+                  {/* Etiket - Dosya Adi */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white truncate px-1 py-0.5 opacity-0 group-hover:opacity-100">
+                    {file.key}
                   </div>
                 </div>
               )
             })}
+            {mediaFiles.length === 0 && (
+              <div className="col-span-3 text-xs text-center text-slate-400 py-4">
+                Henüz yüklenmiş dosya yok.
+              </div>
+            )}
           </div>
-          
-          {mediaFiles.length > 6 && (
-            <button onClick={() => setIsFileManagerOpen(true)} className="w-full mt-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 transition shadow-sm">
-              Tümünü Gör ({mediaFiles.length})
-            </button>
-          )}
-          {mediaFiles.length === 0 && (
-            <div className="text-[10px] text-center text-slate-400 py-2">
-              Dosya yok.
-            </div>
-          )}
         </div>
 
         <h3 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">
