@@ -35,10 +35,19 @@ export default function AdminPage() {
 
   // File Manager State
   const [uploading, setUploading] = useState(false);
-  const [lastUploadedUrl, setLastUploadedUrl] = useState("");
+  const [mediaFiles, setMediaFiles] = useState<{key: string, size: number}[]>([]);
 
   // Canvas Selection
   const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
+
+  const fetchMedia = () => {
+    fetch("/api/files")
+      .then(res => res.json())
+      .then(res => {
+        if (res.files) setMediaFiles(res.files);
+      })
+      .catch(console.error);
+  };
 
   useEffect(() => {
     fetch("/api/content")
@@ -58,6 +67,8 @@ export default function AdminPage() {
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
+
+    fetchMedia();
   }, []);
 
   const handleSave = async () => {
@@ -199,7 +210,7 @@ export default function AdminPage() {
       const res = await fetch("/api/upload", { method: "POST", body: formData });
       const r = await res.json();
       if (r.url) {
-        setLastUploadedUrl(r.url);
+        fetchMedia(); // Refresh list
       } else {
         alert("Yükleme hatası: " + (r.error || "Bilinmeyen hata"));
       }
@@ -207,6 +218,11 @@ export default function AdminPage() {
       alert("Sunucuya bağlanılamadı.");
     }
     setUploading(false);
+  };
+
+  const copyToClipboard = (url: string) => {
+    navigator.clipboard.writeText(url);
+    alert("Kopyalandı: " + url);
   };
 
   if (isLoading) return <div className="p-10 text-center">Yükleniyor...</div>;
@@ -336,7 +352,7 @@ export default function AdminPage() {
       </div>
 
       {/* SAĞ SÜTUN: Araçlar ve Dosya Yöneticisi */}
-      <div className="w-[22%] min-w-[300px] h-full bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 p-4 shadow-2xl z-30 flex flex-col overflow-y-auto">
+      <div className="w-[25%] min-w-[320px] h-full bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 p-4 shadow-2xl z-30 flex flex-col overflow-y-auto">
         <button 
           onClick={previewMode === 'main' ? handleSave : handleSavePage}
           disabled={isSaving}
@@ -345,25 +361,44 @@ export default function AdminPage() {
           {isSaving ? "Kaydediliyor..." : (previewMode === 'main' ? "Ana Sayfayı YAYINLA" : "Alt Sayfayı YAYINLA")}
         </button>
 
-        {/* Dosya Yöneticisi (R2) */}
+        {/* Dosya Yöneticisi (R2) Galerisi */}
         <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
-          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-            <UploadCloud className="w-4 h-4 text-blue-500" /> Medya Deposu (R2)
+          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-2"><UploadCloud className="w-4 h-4 text-blue-500" /> Medya Deposu (R2)</span>
+            <label className={`px-3 py-1 bg-blue-100 text-blue-600 rounded cursor-pointer hover:bg-blue-200 transition text-[10px] font-bold ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              {uploading ? 'Yükleniyor' : '+ Yükle'}
+              <input type="file" className="hidden" onChange={handleFileUpload} />
+            </label>
           </h3>
-          <p className="text-[10px] text-slate-500 mb-3">Resim, PDF veya APK yükleyerek kendi CDN sunucunuzda barındırın.</p>
-          <label className={`flex justify-center items-center px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-            <span className="text-xs font-bold">{uploading ? 'Yükleniyor...' : 'Dosya Seç & Yükle'}</span>
-            <input type="file" className="hidden" onChange={handleFileUpload} />
-          </label>
           
-          {lastUploadedUrl && (
-            <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
-              <span className="text-[10px] text-green-700 truncate max-w-[150px]">{lastUploadedUrl}</span>
-              <button onClick={() => { navigator.clipboard.writeText(lastUploadedUrl); alert("Kopyalandı!"); }} className="p-1 hover:bg-green-100 rounded text-green-600">
-                <Copy className="w-3 h-3" />
-              </button>
-            </div>
-          )}
+          <div className="grid grid-cols-3 gap-2 mt-4 max-h-48 overflow-y-auto pr-1">
+            {mediaFiles.map(file => {
+              const ext = file.key.split('.').pop()?.toUpperCase() || '?';
+              const isImage = ['JPG','JPEG','PNG','GIF','WEBP','SVG'].includes(ext);
+              const url = `/cdn/${file.key}`;
+              return (
+                <div key={file.key} onClick={() => copyToClipboard(window.location.origin + url)} className="relative group rounded overflow-hidden border border-slate-200 dark:border-slate-800 aspect-square flex items-center justify-center bg-white dark:bg-slate-950 cursor-pointer shadow-sm">
+                  {isImage ? (
+                    <img src={url} alt={file.key} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="font-bold text-slate-400 text-xs">{ext}</div>
+                  )}
+                  <div className="absolute inset-0 bg-blue-600/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                    <Copy className="w-5 h-5 text-white" />
+                  </div>
+                  {/* Etiket - Dosya Adi */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white truncate px-1 py-0.5 opacity-0 group-hover:opacity-100">
+                    {file.key}
+                  </div>
+                </div>
+              )
+            })}
+            {mediaFiles.length === 0 && (
+              <div className="col-span-3 text-xs text-center text-slate-400 py-4">
+                Henüz yüklenmiş dosya yok.
+              </div>
+            )}
+          </div>
         </div>
 
         <h3 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">
