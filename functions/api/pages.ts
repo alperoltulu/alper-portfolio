@@ -13,7 +13,7 @@ export async function onRequestGet(context) {
       }
       return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
     } else {
-      const { results } = await db.prepare("SELECT slug, title FROM pages ORDER BY created_at DESC").all();
+      const { results } = await db.prepare("SELECT * FROM pages ORDER BY created_at DESC").all();
       return new Response(JSON.stringify({ data: results || [] }), {
         headers: { "Content-Type": "application/json" }
       });

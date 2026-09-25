@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import BlockRenderer, { Block } from "@/components/builder/BlockRenderer";
 
 export default function DynamicPageViewer() {
   const [data, setData] = useState<{ title: string; content: string } | null>(null);
@@ -50,6 +51,20 @@ export default function DynamicPageViewer() {
     );
   }
 
+  const renderContent = () => {
+    if (!data.content) return null;
+    try {
+      const blocks = JSON.parse(data.content);
+      if (Array.isArray(blocks)) {
+        return <BlockRenderer blocks={blocks} />;
+      }
+    } catch (e) {
+      // JSON parse hatası alıyorsa eski sistem (düz metin) demektir.
+    }
+    // Geriye dönük uyumluluk: Eğer düz metinse tek bir text bloğu gibi çiz.
+    return <BlockRenderer blocks={[{ id: "legacy", type: "text", data: { text: data.content } }]} />;
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 py-20 px-6">
       <div className="max-w-3xl mx-auto">
@@ -60,10 +75,7 @@ export default function DynamicPageViewer() {
         <h1 className="text-4xl md:text-5xl font-black mb-10 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-pink-500">
           {data.title}
         </h1>
-        <div 
-          className="prose prose-lg dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: data.content }}
-        />
+        {renderContent()}
       </div>
     </main>
   );
