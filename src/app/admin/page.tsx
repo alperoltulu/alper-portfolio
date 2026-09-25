@@ -14,10 +14,7 @@ const DEFAULT_DATA = {
     subtitle: "Alper Oltulu",
     title: "Fikirleri Koda,<br/>Kodları Geleceğe.",
     description: "Modern web teknolojileri ve yenilikçi tasarımlarla sınırları zorluyorum.",
-    elements: [
-      { id: 'hero-block', type: 'hero' as CanvasElementType, x: 50, y: 15, w: 800, h: 400, props: {} },
-      { id: 'projects-block', type: 'projects' as CanvasElementType, x: 50, y: 70, w: 1200, h: 800, props: {} }
-    ] as CanvasElement[]
+    elements: [] as CanvasElement[]
   },
   projects: []
 };
@@ -589,9 +586,6 @@ export default function AdminPage() {
           {previewMode === 'main' ? (
             (() => {
               const displayElements = data.hero?.elements ? [...data.hero.elements] : [];
-              if (!displayElements.find((e: any) => e.type === 'hero')) {
-                displayElements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, props: {} });
-              }
               
               return (
                 <CanvasEngine 
@@ -600,7 +594,6 @@ export default function AdminPage() {
                   selectedId={selectedCanvasId}
                   onSelect={setSelectedCanvasId}
                   onUpdateElement={updateCanvasElement}
-                  heroNode={<HeroStatic {...data.hero} />}
                 />
               );
             })()
@@ -714,13 +707,22 @@ export default function AdminPage() {
 
                 {selectedCanvasEl.type === 'text' && (
                   <>
-                    <div><label className="text-xs text-slate-500">Metin Türü</label>
-                      <select value={selectedCanvasEl.props.textType || 'normal'} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "textType", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950">
-                        <option value="normal">Normal Metin</option>
-                        <option value="subtitle">Üst Başlık (Küçük ve Renkli)</option>
-                        <option value="title">Ana Başlık (Devasa)</option>
-                        <option value="description">Açıklama (Gri ve Okunabilir)</option>
-                      </select>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className="text-xs text-slate-500">Metin Türü</label>
+                        <select value={selectedCanvasEl.props.textType || 'normal'} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "textType", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950">
+                          <option value="normal">Normal Metin</option>
+                          <option value="subtitle">Üst Başlık (Küçük)</option>
+                          <option value="title">Ana Başlık (Devasa)</option>
+                          <option value="description">Açıklama (Gri)</option>
+                        </select>
+                      </div>
+                      <div><label className="text-xs text-slate-500">Hizalama</label>
+                        <select value={selectedCanvasEl.props.align || 'center'} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "align", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950">
+                          <option value="left">Sola Dayalı</option>
+                          <option value="center">Ortalı</option>
+                          <option value="right">Sağa Dayalı</option>
+                        </select>
+                      </div>
                     </div>
                     <div><label className="text-xs text-slate-500">Yazı</label><textarea value={selectedCanvasEl.props.text || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "text", e.target.value)} className="w-full p-1.5 text-xs rounded border h-20 bg-white dark:bg-slate-950" /></div>
                     

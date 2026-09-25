@@ -234,7 +234,7 @@ export default function CanvasEngine({
               fontSize: `${defaultSize}px`,
               fontWeight: el.props.fontWeight || (el.props.textType === 'normal' ? 'normal' : undefined),
               width: el.w ? `${el.w}px` : 'max-content',
-              textAlign: el.props.align || 'left'
+              textAlign: el.props.align || 'center'
             }}
           >
             {el.props.text || "Yeni Metin"}
