@@ -2,3 +2,10 @@ CREATE TABLE IF NOT EXISTS content (
   id TEXT PRIMARY KEY,
   data TEXT
 );
+
+CREATE TABLE IF NOT EXISTS pages (
+  slug TEXT PRIMARY KEY,
+  title TEXT,
+  content TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

@@ -24,15 +24,26 @@ const DEFAULT_DATA = {
 
 export default function AdminPage() {
   const [data, setData] = useState(DEFAULT_DATA);
+  const [pages, setPages] = useState<{slug: string, title: string}[]>([]);
+  const [newPage, setNewPage] = useState({ slug: "", title: "", content: "" });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    // Ana sayfa verisini cek
     fetch("/api/content")
       .then(res => res.json())
       .then(res => {
         if (res.data) setData(res.data);
+      })
+      .catch(console.error);
+
+    // Dinamik sayfa listesini cek
+    fetch("/api/pages")
+      .then(res => res.json())
+      .then(res => {
+        if (res.data) setPages(res.data);
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
@@ -48,7 +59,7 @@ export default function AdminPage() {
         body: JSON.stringify({ data })
       });
       if (res.ok) {
-        setMessage("✅ Başarıyla kaydedildi! Siten güncellendi.");
+        setMessage("✅ Ana sayfa başarıyla kaydedildi!");
       } else {
         setMessage("❌ Kaydetme başarısız.");
       }
@@ -57,6 +68,34 @@ export default function AdminPage() {
     }
     setIsSaving(false);
     setTimeout(() => setMessage(""), 3000);
+  };
+
+  const handleSavePage = async () => {
+    if (!newPage.slug || !newPage.title) return alert("Link ve Başlık zorunludur!");
+    try {
+      const res = await fetch("/api/pages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPage)
+      });
+      if (res.ok) {
+        alert("Sayfa eklendi!");
+        setPages([...pages.filter(p => p.slug !== newPage.slug), { slug: newPage.slug, title: newPage.title }]);
+        setNewPage({ slug: "", title: "", content: "" });
+      }
+    } catch (e) {
+      alert("Hata oluştu.");
+    }
+  };
+
+  const handleDeletePage = async (slug: string) => {
+    if (!confirm("Bu sayfayı silmek istediğinize emin misiniz?")) return;
+    try {
+      const res = await fetch(`/api/pages?slug=${slug}`, { method: "DELETE" });
+      if (res.ok) {
+        setPages(pages.filter(p => p.slug !== slug));
+      }
+    } catch (e) {}
   };
 
   const handleHeroChange = (field: string, value: string) => {
@@ -166,6 +205,46 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Dynamic Pages Form */}
+        <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+          <h2 className="text-xl font-bold flex items-center gap-2 text-purple-500">📄 Dinamik Sayfalar</h2>
+          
+          {/* List of existing pages */}
+          {pages.length > 0 && (
+            <div className="space-y-2">
+              {pages.map(p => (
+                <div key={p.slug} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                  <div>
+                    <div className="font-bold text-sm">{p.title}</div>
+                    <a href={`/p/${p.slug}`} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">/p/{p.slug}</a>
+                  </div>
+                  <button onClick={() => handleDeletePage(p.slug)} className="text-xs text-red-500 hover:bg-red-500/10 px-2 py-1 rounded">Sil</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Create new page form */}
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-2xl border border-purple-100 dark:border-purple-800/50 space-y-3">
+            <h3 className="font-bold text-sm text-purple-700 dark:text-purple-400">Yeni Sayfa Oluştur</h3>
+            <div>
+              <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Sayfa Linki (İngilizce karakter, boşluksuz)</label>
+              <input value={newPage.slug} onChange={e => setNewPage({...newPage, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-")})} placeholder="ornek: yeni-projem" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 transition" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Başlık</label>
+              <input value={newPage.title} onChange={e => setNewPage({...newPage, title: e.target.value})} placeholder="Benim Harika Projem" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 transition" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">İçerik (HTML destekler)</label>
+              <textarea value={newPage.content} onChange={e => setNewPage({...newPage, content: e.target.value})} placeholder="<p>Bu proje hakkında detaylar...</p>" className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-purple-500 transition h-32 resize-none" />
+            </div>
+            <button onClick={handleSavePage} className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition shadow-lg shadow-purple-500/30">
+              Sayfayı Oluştur / Güncelle
+            </button>
+          </div>
         </div>
       </div>
 
