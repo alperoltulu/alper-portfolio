@@ -1,4 +1,4 @@
-export type CanvasElementType = 'text' | 'button' | 'shape' | 'image' | 'social';
+export type CanvasElementType = 'text' | 'button' | 'shape' | 'image' | 'social' | 'line';
 
 export interface CanvasElement {
   id: string;

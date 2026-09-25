@@ -5,7 +5,7 @@ import HeroSection from "@/components/builder/HeroSection";
 import ProjectsSection from "@/components/builder/ProjectsSection";
 import BlockRenderer, { Block, BlockType } from "@/components/builder/BlockRenderer";
 import { CanvasElement, CanvasElementType } from "@/types/canvas";
-import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Square } from "lucide-react";
+import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Minus, UploadCloud, Copy } from "lucide-react";
 
 const DEFAULT_DATA = {
   hero: {
@@ -33,6 +33,10 @@ export default function AdminPage() {
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
   const [isDynamicOpen, setIsDynamicOpen] = useState(false);
 
+  // File Manager State
+  const [uploading, setUploading] = useState(false);
+  const [lastUploadedUrl, setLastUploadedUrl] = useState("");
+
   // Canvas Selection
   const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
 
@@ -41,7 +45,6 @@ export default function AdminPage() {
       .then(res => res.json())
       .then(res => {
         if (res.data) {
-          // Ensure elements array exists for older DB records
           if (!res.data.hero.elements) res.data.hero.elements = [];
           setData(res.data);
         }
@@ -123,21 +126,13 @@ export default function AdminPage() {
   };
 
   // Generic Update Helpers
-  const handleHeroChange = (field: string, value: any) => {
-    setData(prev => ({ ...prev, hero: { ...prev.hero, [field]: value } }));
-  };
-
+  const handleHeroChange = (field: string, value: any) => setData(prev => ({ ...prev, hero: { ...prev.hero, [field]: value } }));
   const updateProject = (index: number, field: string, value: string) => {
     const newProjects = [...data.projects];
     newProjects[index] = { ...newProjects[index], [field]: value };
     setData(prev => ({ ...prev, projects: newProjects }));
   };
-  const addProject = () => {
-    setData(prev => ({
-      ...prev,
-      projects: [...prev.projects, { title: "Yeni Proje", desc: "Açıklama...", demo: "", apk: "", color: "from-gray-500 to-gray-700" }]
-    }));
-  };
+  const addProject = () => setData(prev => ({ ...prev, projects: [...prev.projects, { title: "Yeni Proje", desc: "Açıklama...", demo: "", apk: "", color: "from-gray-500 to-gray-700" }] }));
   const removeProject = (index: number) => {
     const newProjects = [...data.projects];
     newProjects.splice(index, 1);
@@ -148,6 +143,7 @@ export default function AdminPage() {
   const addDynamicBlock = (type: BlockType) => {
     const newBlock: Block = { id: Math.random().toString(36).substr(2, 9), type, data: {} };
     if (type === 'button') newBlock.data = { label: "Buton", url: "#" };
+    if (type === 'social') newBlock.data = { links: [] };
     setEditingPage(prev => ({ ...prev, blocks: [...prev.blocks, newBlock] }));
   };
   const updateDynamicBlock = (id: string, field: string, value: any) => {
@@ -171,6 +167,8 @@ export default function AdminPage() {
     const newElement: CanvasElement = { id, type, x: 50, y: 50, props: {} };
     if (type === 'button') newElement.props = { label: "Yeni Buton" };
     if (type === 'shape') newElement.props = { shapeType: 'circle', color: '#db2777' };
+    if (type === 'line') newElement.props = { color: '#cbd5e1' };
+    if (type === 'social') newElement.props = { links: [] };
     
     setData(prev => ({
       ...prev,
@@ -180,33 +178,38 @@ export default function AdminPage() {
     setPreviewMode('main');
   };
   const updateCanvasElement = (id: string, updates: Partial<CanvasElement>) => {
-    setData(prev => ({
-      ...prev,
-      hero: {
-        ...prev.hero,
-        elements: prev.hero.elements.map(el => el.id === id ? { ...el, ...updates } : el)
-      }
-    }));
+    setData(prev => ({ ...prev, hero: { ...prev.hero, elements: prev.hero.elements.map(el => el.id === id ? { ...el, ...updates } : el) } }));
   };
   const updateCanvasElementProps = (id: string, propField: string, value: any) => {
-    setData(prev => ({
-      ...prev,
-      hero: {
-        ...prev.hero,
-        elements: prev.hero.elements.map(el => el.id === id ? { ...el, props: { ...el.props, [propField]: value } } : el)
-      }
-    }));
+    setData(prev => ({ ...prev, hero: { ...prev.hero, elements: prev.hero.elements.map(el => el.id === id ? { ...el, props: { ...el.props, [propField]: value } } : el) } }));
   };
   const removeCanvasElement = (id: string) => {
-    setData(prev => ({
-      ...prev,
-      hero: { ...prev.hero, elements: prev.hero.elements.filter(el => el.id !== id) }
-    }));
+    setData(prev => ({ ...prev, hero: { ...prev.hero, elements: prev.hero.elements.filter(el => el.id !== id) } }));
     setSelectedCanvasId(null);
   };
 
-  if (isLoading) return <div className="p-10 text-center">Yükleniyor...</div>;
+  // File Upload Logic (Cloudflare R2)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const r = await res.json();
+      if (r.url) {
+        setLastUploadedUrl(r.url);
+      } else {
+        alert("Yükleme hatası: " + (r.error || "Bilinmeyen hata"));
+      }
+    } catch(err) {
+      alert("Sunucuya bağlanılamadı.");
+    }
+    setUploading(false);
+  };
 
+  if (isLoading) return <div className="p-10 text-center">Yükleniyor...</div>;
   const selectedCanvasEl = data.hero.elements?.find(el => el.id === selectedCanvasId);
 
   return (
@@ -214,14 +217,14 @@ export default function AdminPage() {
       
       {/* SOL SÜTUN: CMS Veri Yönetimi */}
       <div className="w-[25%] min-w-[320px] max-w-[400px] h-full bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 overflow-y-auto p-4 shadow-xl z-20 flex flex-col gap-4">
-        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-pink-500 cursor-pointer pb-2 border-b border-slate-100 dark:border-slate-800">
+        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-pink-500 cursor-pointer pb-2 border-b border-slate-100 dark:border-slate-800" onClick={() => setPreviewMode('main')}>
           Alper CMS
         </h1>
 
         {/* Hero Form */}
         <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <button onClick={() => { setIsHeroOpen(!isHeroOpen); setPreviewMode('main'); }} className="w-full p-3 flex justify-between items-center text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
-            <span>🎯 Karşılama Alanı (Metinler)</span>
+            <span>🎯 Karşılama Alanı</span>
             {isHeroOpen ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
           </button>
           {isHeroOpen && (
@@ -234,27 +237,7 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Projects Form */}
-        <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <button onClick={() => { setIsProjectsOpen(!isProjectsOpen); setPreviewMode('main'); }} className="w-full p-3 flex justify-between items-center text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
-            <span>🚀 Projeler</span>
-            {isProjectsOpen ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
-          </button>
-          {isProjectsOpen && (
-            <div className="p-3 space-y-3 border-t border-slate-200 dark:border-slate-800">
-              <button onClick={addProject} className="text-xs bg-blue-100 text-blue-600 px-3 py-1 rounded font-bold w-full">+ Yeni Proje</button>
-              {data.projects.map((p, i) => (
-                <div key={i} className="bg-white dark:bg-slate-950 p-3 rounded border border-slate-200 dark:border-slate-800 relative space-y-2">
-                  <button onClick={() => removeProject(i)} className="absolute top-2 right-2 text-xs text-red-500 font-bold">Sil</button>
-                  <div><input value={p.title} onChange={e => updateProject(i, "title", e.target.value)} className="w-full p-1 text-xs border rounded" placeholder="Proje Adı" /></div>
-                  <div><input value={p.desc} onChange={e => updateProject(i, "desc", e.target.value)} className="w-full p-1 text-xs border rounded" placeholder="Açıklama" /></div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Dynamic Pages Setup */}
+        {/* Dynamic Pages */}
         <div className="bg-purple-50 dark:bg-slate-900 rounded-xl border border-purple-200 dark:border-purple-900/50 overflow-hidden">
           <button onClick={() => { setIsDynamicOpen(!isDynamicOpen); setPreviewMode(isDynamicOpen ? 'main' : 'dynamic'); }} className="w-full p-3 flex justify-between items-center text-sm font-bold text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30">
             <span>📄 Alt Sayfalar</span>
@@ -267,22 +250,60 @@ export default function AdminPage() {
                   <span className="font-bold truncate">{p.title}</span>
                   <div className="flex gap-1">
                     <button onClick={() => loadPageForEdit(p)} className="px-2 py-1 bg-purple-100 text-purple-600 rounded">Düzenle</button>
-                    <button onClick={() => handleDeletePage(p.slug)} className="px-2 py-1 bg-red-100 text-red-600 rounded">Sil</button>
                   </div>
                 </div>
               ))}
               
               <div className="pt-3 border-t border-purple-200 dark:border-purple-900/50 space-y-2">
-                <span className="text-xs font-bold text-purple-600">Yeni Sayfa Oluştur</span>
                 <input value={editingPage.slug} onChange={e => { setEditingPage({...editingPage, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-")}); setPreviewMode('dynamic'); }} placeholder="Link (ornek-sayfa)" className="w-full p-2 text-xs rounded border border-purple-200" />
                 <input value={editingPage.title} onChange={e => { setEditingPage({...editingPage, title: e.target.value}); setPreviewMode('dynamic'); }} placeholder="Sayfa Başlığı" className="w-full p-2 text-xs rounded border border-purple-200" />
               </div>
             </div>
           )}
         </div>
+
+        {/* Dynamic Page Blocks Properties (Only show if editing dynamic) */}
+        {previewMode === 'dynamic' && editingPage.slug && (
+          <div className="space-y-4 pb-10">
+            <h3 className="font-bold text-purple-600 border-b border-purple-200 pb-2">Sayfa Blokları Ayarları</h3>
+            {editingPage.blocks.map((block, index) => (
+              <div key={block.id} className="relative bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm group">
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  <button onClick={() => moveDynamicBlock(index, 'up')} className="p-1 bg-white dark:bg-slate-800 rounded hover:text-blue-500 shadow-sm"><ArrowUp className="w-3 h-3"/></button>
+                  <button onClick={() => moveDynamicBlock(index, 'down')} className="p-1 bg-white dark:bg-slate-800 rounded hover:text-blue-500 shadow-sm"><ArrowDown className="w-3 h-3"/></button>
+                  <button onClick={() => removeDynamicBlock(block.id)} className="p-1 bg-white dark:bg-slate-800 rounded hover:text-red-500 shadow-sm ml-2"><Trash2 className="w-3 h-3"/></button>
+                </div>
+                <div className="mb-2 text-xs font-bold text-slate-400 uppercase">{block.type} Bloğu</div>
+
+                {block.type === 'text' && (
+                  <textarea value={block.data.text || ""} onChange={e => updateDynamicBlock(block.id, "text", e.target.value)} className="w-full bg-white dark:bg-slate-950 border rounded px-2 py-1 text-xs h-24" />
+                )}
+                {block.type === 'image' && (
+                  <div><input value={block.data.url || ""} onChange={e => updateDynamicBlock(block.id, "url", e.target.value)} placeholder="URL" className="w-full bg-white border rounded px-2 py-1 text-xs" /></div>
+                )}
+                {block.type === 'line' && (
+                  <div><input type="color" value={block.data.color || "#cbd5e1"} onChange={e => updateDynamicBlock(block.id, "color", e.target.value)} className="w-full bg-white border rounded p-0 h-6" /></div>
+                )}
+                {block.type === 'social' && (
+                  <div className="space-y-2">
+                    <button onClick={() => updateDynamicBlock(block.id, "links", [...(block.data.links||[]), {url:"", logoUrl:""}])} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded w-full">+ İkon Ekle</button>
+                    {(block.data.links||[]).map((l:any, i:number) => (
+                      <div key={i} className="flex flex-col gap-1 bg-white p-2 border rounded relative">
+                        <button onClick={() => { const cl=[...block.data.links]; cl.splice(i,1); updateDynamicBlock(block.id,"links",cl); }} className="absolute top-1 right-1 text-red-500"><Trash2 className="w-3 h-3"/></button>
+                        <input value={l.url} onChange={e => { const cl=[...block.data.links]; cl[i].url=e.target.value; updateDynamicBlock(block.id,"links",cl); }} placeholder="Bağlantı URL" className="text-xs border rounded p-1 w-[90%]" />
+                        <input value={l.logoUrl} onChange={e => { const cl=[...block.data.links]; cl[i].logoUrl=e.target.value; updateDynamicBlock(block.id,"links",cl); }} placeholder="Logo URL (Örn: /cdn/logo.png)" className="text-xs border rounded p-1 w-[90%]" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
 
-      {/* ORTA SÜTUN: Canlı Tuval (Live Canvas) */}
+      {/* ORTA SÜTUN: Canlı Tuval */}
       <div className="flex-1 h-full relative overflow-y-auto bg-slate-50 dark:bg-slate-950 pattern-grid">
         <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900/80 backdrop-blur rounded-full text-xs text-white font-mono uppercase z-50 shadow-lg flex items-center gap-3">
           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
@@ -314,8 +335,8 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* SAĞ SÜTUN: Paint (Araçlar) Menüsü */}
-      <div className="w-[20%] min-w-[280px] h-full bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 p-4 shadow-2xl z-30 flex flex-col">
+      {/* SAĞ SÜTUN: Araçlar ve Dosya Yöneticisi */}
+      <div className="w-[22%] min-w-[300px] h-full bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 p-4 shadow-2xl z-30 flex flex-col overflow-y-auto">
         <button 
           onClick={previewMode === 'main' ? handleSave : handleSavePage}
           disabled={isSaving}
@@ -324,90 +345,120 @@ export default function AdminPage() {
           {isSaving ? "Kaydediliyor..." : (previewMode === 'main' ? "Ana Sayfayı YAYINLA" : "Alt Sayfayı YAYINLA")}
         </button>
 
+        {/* Dosya Yöneticisi (R2) */}
+        <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+            <UploadCloud className="w-4 h-4 text-blue-500" /> Medya Deposu (R2)
+          </h3>
+          <p className="text-[10px] text-slate-500 mb-3">Resim, PDF veya APK yükleyerek kendi CDN sunucunuzda barındırın.</p>
+          <label className={`flex justify-center items-center px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-100 transition ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <span className="text-xs font-bold">{uploading ? 'Yükleniyor...' : 'Dosya Seç & Yükle'}</span>
+            <input type="file" className="hidden" onChange={handleFileUpload} />
+          </label>
+          
+          {lastUploadedUrl && (
+            <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+              <span className="text-[10px] text-green-700 truncate max-w-[150px]">{lastUploadedUrl}</span>
+              <button onClick={() => { navigator.clipboard.writeText(lastUploadedUrl); alert("Kopyalandı!"); }} className="p-1 hover:bg-green-100 rounded text-green-600">
+                <Copy className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </div>
+
         <h3 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">
           {previewMode === 'main' ? 'Serbest Araçlar (Paint)' : 'Sayfa Araçları (Blok)'}
         </h3>
         
-        {/* Araç Kutusu (Toolbar) */}
-        <div className="grid grid-cols-2 gap-2 mb-6">
-          <button onClick={() => previewMode === 'main' ? addCanvasElement('button') : addDynamicBlock('button')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-blue-500 hover:text-blue-500 transition"><LinkIcon className="w-5 h-5"/><span className="text-xs">Buton</span></button>
-          {previewMode === 'main' ? (
-            <button onClick={() => addCanvasElement('shape')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-pink-500 hover:text-pink-500 transition"><Circle className="w-5 h-5"/><span className="text-xs">Şekil</span></button>
-          ) : (
-            <button onClick={() => addDynamicBlock('text')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-purple-500 hover:text-purple-500 transition"><Type className="w-5 h-5"/><span className="text-xs">Metin</span></button>
+        {/* Toolbar */}
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          <button onClick={() => previewMode === 'main' ? addCanvasElement('text') : addDynamicBlock('text')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-purple-500 hover:text-purple-500 transition"><Type className="w-4 h-4"/><span className="text-[10px] font-bold">Metin</span></button>
+          <button onClick={() => previewMode === 'main' ? addCanvasElement('button') : addDynamicBlock('button')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-blue-500 hover:text-blue-500 transition"><LinkIcon className="w-4 h-4"/><span className="text-[10px] font-bold">Buton</span></button>
+          <button onClick={() => previewMode === 'main' ? addCanvasElement('image') : addDynamicBlock('image')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-green-500 hover:text-green-500 transition"><ImageIcon className="w-4 h-4"/><span className="text-[10px] font-bold">Resim</span></button>
+          <button onClick={() => previewMode === 'main' ? addCanvasElement('social') : addDynamicBlock('social')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-orange-500 hover:text-orange-500 transition"><Share2 className="w-4 h-4"/><span className="text-[10px] font-bold">Sosyal</span></button>
+          <button onClick={() => previewMode === 'main' ? addCanvasElement('line') : addDynamicBlock('line')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-slate-500 hover:text-slate-500 transition"><Minus className="w-4 h-4"/><span className="text-[10px] font-bold">Çizgi</span></button>
+          {previewMode === 'main' && (
+            <button onClick={() => addCanvasElement('shape')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-pink-500 hover:text-pink-500 transition"><Circle className="w-4 h-4"/><span className="text-[10px] font-bold">Şekil</span></button>
           )}
-          <button onClick={() => previewMode === 'main' ? addCanvasElement('image') : addDynamicBlock('image')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-blue-500 hover:text-blue-500 transition"><ImageIcon className="w-5 h-5"/><span className="text-xs">Resim</span></button>
-          <button onClick={() => previewMode === 'main' ? addCanvasElement('social') : addDynamicBlock('social')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-blue-500 hover:text-blue-500 transition"><Share2 className="w-5 h-5"/><span className="text-xs">Sosyal</span></button>
         </div>
 
-        {/* Özellikler Paneli (Properties) */}
-        <div className="flex-1 overflow-y-auto">
-          <h3 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">Özellikler</h3>
-          
-          {previewMode === 'main' ? (
-            // Canvas Element Properties
-            selectedCanvasEl ? (
+        {/* Canvas Element Properties */}
+        {previewMode === 'main' && (
+          <div className="flex-1 overflow-y-auto">
+            <h3 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">Seçili Obje Özellikleri</h3>
+            {selectedCanvasEl ? (
               <div className="space-y-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
                 <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-2 mb-2">
                   <span className="font-bold text-sm uppercase">{selectedCanvasEl.type}</span>
                   <button onClick={() => removeCanvasElement(selectedCanvasEl.id)} className="text-red-500 hover:bg-red-100 p-1 rounded"><Trash2 className="w-4 h-4"/></button>
                 </div>
                 
-                {/* Genislik / Yukseklik */}
+                {/* Size Controls */}
                 <div className="grid grid-cols-2 gap-2">
                   <div><label className="text-[10px] text-slate-500">Genişlik (px)</label><input type="number" value={selectedCanvasEl.w || ""} onChange={e => updateCanvasElement(selectedCanvasEl.id, { w: Number(e.target.value) })} className="w-full p-1.5 text-xs rounded border" placeholder="Oto"/></div>
                   <div><label className="text-[10px] text-slate-500">Yükseklik (px)</label><input type="number" value={selectedCanvasEl.h || ""} onChange={e => updateCanvasElement(selectedCanvasEl.id, { h: Number(e.target.value) })} className="w-full p-1.5 text-xs rounded border" placeholder="Oto"/></div>
                 </div>
 
-                {/* Specific Props */}
+                {selectedCanvasEl.type === 'text' && (
+                  <>
+                    <div><label className="text-xs text-slate-500">Yazı</label><textarea value={selectedCanvasEl.props.text || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "text", e.target.value)} className="w-full p-1.5 text-xs rounded border h-20" /></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className="text-[10px] text-slate-500">Punto</label><input type="number" value={selectedCanvasEl.props.fontSize || 16} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "fontSize", e.target.value)} className="w-full p-1 text-xs border rounded" /></div>
+                      <div><label className="text-[10px] text-slate-500">Renk</label><input type="color" value={selectedCanvasEl.props.color || "#000000"} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full h-6 border rounded p-0" /></div>
+                    </div>
+                  </>
+                )}
+
                 {selectedCanvasEl.type === 'button' && (
                   <>
                     <div><label className="text-xs text-slate-500">Yazı</label><input value={selectedCanvasEl.props.label || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "label", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
                     <div><label className="text-xs text-slate-500">Link</label><input value={selectedCanvasEl.props.url || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "url", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
-                    <div><label className="text-xs text-slate-500">Renk Gradiyent</label><input value={selectedCanvasEl.props.color || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full p-1.5 text-xs rounded border" placeholder="linear-gradient(...)" /></div>
+                    <div><label className="text-[10px] text-slate-500">Arkaplan Rengi (Hex veya Gradient)</label><input value={selectedCanvasEl.props.color || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
                   </>
                 )}
 
                 {selectedCanvasEl.type === 'shape' && (
                   <>
                     <div>
-                      <label className="text-xs text-slate-500">Şekil Türü</label>
                       <select value={selectedCanvasEl.props.shapeType || 'circle'} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "shapeType", e.target.value)} className="w-full p-1.5 text-xs rounded border">
                         <option value="circle">Yuvarlak</option>
                         <option value="square">Kare / Dikdörtgen</option>
                       </select>
                     </div>
-                    <div><label className="text-xs text-slate-500">Arkaplan Rengi</label><input value={selectedCanvasEl.props.color || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
+                    <div><label className="text-[10px] text-slate-500">Renk</label><input type="color" value={selectedCanvasEl.props.color || "#db2777"} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full h-8 border rounded p-0" /></div>
                   </>
+                )}
+                
+                {selectedCanvasEl.type === 'line' && (
+                  <div><label className="text-[10px] text-slate-500">Çizgi Rengi</label><input type="color" value={selectedCanvasEl.props.color || "#cbd5e1"} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full h-8 border rounded p-0" /></div>
                 )}
 
                 {selectedCanvasEl.type === 'image' && (
                   <>
-                    <div><label className="text-xs text-slate-500">Resim Linki</label><input value={selectedCanvasEl.props.url || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "url", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
-                    <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={selectedCanvasEl.props.rounded || false} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "rounded", e.target.checked)} /> Yuvarlak (Avatar)</label>
+                    <div><label className="text-xs text-slate-500">Resim Linki (veya R2 URL)</label><input value={selectedCanvasEl.props.url || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "url", e.target.value)} className="w-full p-1.5 text-xs rounded border" /></div>
+                    <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={selectedCanvasEl.props.rounded || false} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "rounded", e.target.checked)} /> Yuvarlak Yap</label>
                   </>
                 )}
 
                 {selectedCanvasEl.type === 'social' && (
                   <div className="space-y-2">
-                    <div><label className="text-[10px] text-slate-500">Twitter (X)</label><input value={selectedCanvasEl.props.twitter || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "twitter", e.target.value)} className="w-full p-1 text-xs border rounded" /></div>
-                    <div><label className="text-[10px] text-slate-500">LinkedIn</label><input value={selectedCanvasEl.props.linkedin || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "linkedin", e.target.value)} className="w-full p-1 text-xs border rounded" /></div>
-                    <div><label className="text-[10px] text-slate-500">Instagram</label><input value={selectedCanvasEl.props.instagram || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "instagram", e.target.value)} className="w-full p-1 text-xs border rounded" /></div>
+                    <button onClick={() => updateCanvasElementProps(selectedCanvasEl.id, "links", [...(selectedCanvasEl.props.links||[]), {url:"", logoUrl:""}])} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded w-full">+ İkon Ekle</button>
+                    {(selectedCanvasEl.props.links||[]).map((l:any, i:number) => (
+                      <div key={i} className="flex flex-col gap-1 bg-white p-2 border rounded relative">
+                        <button onClick={() => { const cl=[...selectedCanvasEl.props.links]; cl.splice(i,1); updateCanvasElementProps(selectedCanvasEl.id,"links",cl); }} className="absolute top-1 right-1 text-red-500"><Trash2 className="w-3 h-3"/></button>
+                        <input value={l.url} onChange={e => { const cl=[...selectedCanvasEl.props.links]; cl[i].url=e.target.value; updateCanvasElementProps(selectedCanvasEl.id,"links",cl); }} placeholder="Bağlantı URL" className="text-[10px] border rounded p-1 w-[90%]" />
+                        <input value={l.logoUrl} onChange={e => { const cl=[...selectedCanvasEl.props.links]; cl[i].logoUrl=e.target.value; updateCanvasElementProps(selectedCanvasEl.id,"links",cl); }} placeholder="Özel Logo URL (İsteğe bağlı)" className="text-[10px] border rounded p-1 w-[90%]" />
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="text-xs text-slate-400 text-center mt-10">Ortadaki tuvalden bir araca tıkla veya yukarıdan yeni ekle.</div>
-            )
-          ) : (
-            // Dynamic Page Properties
-            <div className="text-xs text-slate-400 text-center mt-10">
-              Alt sayfa düzenliyorsunuz. Ortadaki ekranda eklediğiniz blokları form üzerinden yönetebilirsiniz.
-            </div>
-          )}
-        </div>
+              <div className="text-xs text-slate-400 text-center mt-10">Tuvalden bir şekle tıklayın veya araç ekleyin.</div>
+            )}
+          </div>
+        )}
       </div>
-      
     </div>
   );
 }

@@ -44,7 +44,6 @@ export default function CanvasEngine({
     let newX = dragState.startElemX + dxPct;
     let newY = dragState.startElemY + dyPct;
 
-    // Bounds checking (optional, but good for keeping things on screen)
     newX = Math.max(0, Math.min(100, newX));
     newY = Math.max(0, Math.min(100, newY));
 
@@ -94,6 +93,18 @@ export default function CanvasEngine({
           />
         );
 
+      case 'line':
+        return (
+          <div
+            style={{
+              width: el.w ? `${el.w}px` : '200px',
+              height: el.h ? `${el.h}px` : '2px',
+              backgroundColor: el.props.color || '#cbd5e1',
+              borderRadius: '9999px'
+            }}
+          />
+        );
+
       case 'text':
         return (
           <div 
@@ -125,14 +136,29 @@ export default function CanvasEngine({
         );
 
       case 'social':
+        const dynamicLinks = el.props.links || [];
         return (
           <div className="flex gap-2 p-2 bg-white/10 backdrop-blur-md rounded-2xl shadow-lg border border-white/20">
+            {dynamicLinks.map((link: any, i: number) => (
+              <a key={i} href={isEditMode ? undefined : link.url} target="_blank" rel="noreferrer" onClick={e => isEditMode && e.preventDefault()}>
+                {link.logoUrl ? (
+                  <img src={link.logoUrl} alt="social" className="w-8 h-8 rounded-full object-cover bg-white" />
+                ) : (
+                  <div className="w-8 h-8 bg-slate-800 text-white flex items-center justify-center rounded-full text-xs font-bold">
+                    {link.url ? link.url.substring(0,2).toUpperCase() : "?"}
+                  </div>
+                )}
+              </a>
+            ))}
+            
+            {/* Legacy Icons */}
             {el.props.twitter && <div className="p-2 bg-slate-900 text-white rounded-full"><Twitter className="w-4 h-4"/></div>}
             {el.props.linkedin && <div className="p-2 bg-blue-600 text-white rounded-full"><Linkedin className="w-4 h-4"/></div>}
             {el.props.github && <div className="p-2 bg-slate-800 text-white rounded-full"><Github className="w-4 h-4"/></div>}
             {el.props.instagram && <div className="p-2 bg-pink-600 text-white rounded-full"><Instagram className="w-4 h-4"/></div>}
             {el.props.youtube && <div className="p-2 bg-red-600 text-white rounded-full"><Youtube className="w-4 h-4"/></div>}
-            {!el.props.twitter && !el.props.linkedin && !el.props.github && !el.props.instagram && !el.props.youtube && (
+            
+            {dynamicLinks.length === 0 && !el.props.twitter && !el.props.linkedin && !el.props.github && !el.props.instagram && !el.props.youtube && (
               <span className="text-xs text-slate-500 px-2">Sosyal Link Ekleyin</span>
             )}
           </div>
@@ -166,7 +192,7 @@ export default function CanvasEngine({
             if (isEditMode) e.stopPropagation();
           }}
         >
-          {/* Seçim Çerçevesi (Sadece Edit Modunda) */}
+          {/* Seçim Çerçevesi */}
           {isEditMode && selectedId === el.id && (
             <div className="absolute -inset-3 border-2 border-dashed border-blue-500 rounded-lg pointer-events-none z-0" />
           )}

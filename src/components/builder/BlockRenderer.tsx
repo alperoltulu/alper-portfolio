@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Download, ExternalLink, Github, Instagram, Linkedin, Twitter, Youtube, PlayCircle } from "lucide-react";
 
-export type BlockType = 'text' | 'image' | 'button' | 'social' | 'cv' | 'video';
+export type BlockType = 'text' | 'image' | 'button' | 'social' | 'cv' | 'video' | 'line';
 
 export interface Block {
   id: string;
@@ -24,6 +24,20 @@ export default function BlockRenderer({ blocks }: { blocks: Block[] }) {
                 className="prose prose-lg dark:prose-invert max-w-none break-words"
                 dangerouslySetInnerHTML={{ __html: block.data.text || "" }} 
               />
+            );
+          
+          case 'line':
+            return (
+              <div key={block.id} className="w-full flex justify-center py-4">
+                <div 
+                  style={{
+                    width: block.data.w ? `${block.data.w}%` : '100%',
+                    height: block.data.h ? `${block.data.h}px` : '2px',
+                    backgroundColor: block.data.color || '#cbd5e1',
+                    borderRadius: '9999px'
+                  }}
+                />
+              </div>
             );
           
           case 'image':
@@ -53,8 +67,23 @@ export default function BlockRenderer({ blocks }: { blocks: Block[] }) {
             );
 
           case 'social':
+            const dynamicLinks = block.data.links || [];
             return (
               <div key={block.id} className="flex flex-wrap items-center gap-4 py-4">
+                
+                {dynamicLinks.map((link: any, i: number) => (
+                  <a key={i} href={link.url} target="_blank" rel="noreferrer" className="p-1 rounded-full transition-transform hover:scale-110 shadow-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex items-center justify-center">
+                    {link.logoUrl ? (
+                      <img src={link.logoUrl} alt="social" className="w-10 h-10 object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 flex items-center justify-center text-xs font-bold text-slate-800 dark:text-slate-200">
+                        {link.url ? link.url.substring(0,2).toUpperCase() : "?"}
+                      </div>
+                    )}
+                  </a>
+                ))}
+
+                {/* Legacy Links */}
                 {block.data.twitter && (
                   <a href={block.data.twitter} target="_blank" className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors"><Twitter className="w-5 h-5" /></a>
                 )}
