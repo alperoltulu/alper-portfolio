@@ -229,7 +229,7 @@ export default function AdminPage() {
   };
 
   // PROJECT LOGIC
-  const addProject = () => setData(prev => ({ ...prev, projects: [{ title: "Yeni Proje", description: "", image: "", url: "", tags: [] }, ...prev.projects] }));
+  const addProject = () => setData(prev => ({ ...prev, projects: [{ title: "Yeni Proje", description: "", image: "", url: "", template: "1", tags: [] }, ...prev.projects] }));
   const updateProject = (index: number, key: string, value: any) => setData(prev => {
     const newProjects = [...prev.projects];
     newProjects[index] = { ...newProjects[index], [key]: value };
@@ -452,8 +452,17 @@ export default function AdminPage() {
                 <div key={i} className="relative bg-white dark:bg-slate-950 p-2 rounded border border-slate-200 dark:border-slate-800 space-y-2">
                   <button onClick={() => removeProject(i)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4"/></button>
                   <input value={proj.title} onChange={e => updateProject(i, "title", e.target.value)} className="w-[90%] p-1 text-xs border rounded bg-transparent" placeholder="Proje Adı" />
+                  
+                  <select value={proj.template || "1"} onChange={e => updateProject(i, "template", e.target.value)} className="w-full p-1 text-xs border rounded bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300">
+                    <option value="1">Şablon 1: Klasik Modern Kart (İkonlu)</option>
+                    <option value="2">Şablon 2: Resimli Büyük Kapak (Banner)</option>
+                    <option value="3">Şablon 3: Minimalist Metin (Sade)</option>
+                    <option value="4">Şablon 4: Yatay Yerleşim (Resim Solda)</option>
+                    <option value="5">Şablon 5: Glassmorphism (Bulanık Efekt)</option>
+                  </select>
+
                   <textarea value={proj.description} onChange={e => updateProject(i, "description", e.target.value)} className="w-full p-1 text-xs border rounded h-12 bg-transparent" placeholder="Proje Açıklaması" />
-                  <input value={proj.image} onChange={e => updateProject(i, "image", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Resim URL (Medya Deposundan kopyalayın)" />
+                  <input value={proj.image} onChange={e => updateProject(i, "image", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Resim URL (Şablon 2, 4 ve 5 için)" />
                   <input value={proj.url} onChange={e => updateProject(i, "url", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Proje Linki" />
                 </div>
               ))}
