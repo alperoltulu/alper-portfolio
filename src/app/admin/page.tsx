@@ -9,6 +9,10 @@ import { CanvasElement, CanvasElementType } from "@/types/canvas";
 import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Minus, UploadCloud, Copy, X, Info } from "lucide-react";
 
 const DEFAULT_DATA = {
+  navbar: {
+    enabled: true,
+    links: [] as { id: string, label: string, url: string }[]
+  },
   hero: {
     avatarText: "A.",
     subtitle: "Alper Oltulu",
@@ -30,6 +34,7 @@ export default function AdminPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [isHeroOpen, setIsHeroOpen] = useState(true);
+  const [isNavbarOpen, setIsNavbarOpen] = useState(false);
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
   const [isDynamicOpen, setIsDynamicOpen] = useState(false);
 
@@ -110,6 +115,8 @@ export default function AdminPage() {
 
           // Remove the old 'projects' (plural) block if it exists
           res.data.hero.elements = res.data.hero.elements.filter((e: any) => e.type !== 'projects');
+
+          if (!res.data.navbar) res.data.navbar = { enabled: true, links: [] };
 
           setData(res.data);
         }
@@ -497,6 +504,52 @@ export default function AdminPage() {
 
 
 
+        {/* Üst Menü */}
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <button onClick={() => { setIsNavbarOpen(!isNavbarOpen); setPreviewMode('main'); }} className="w-full p-3 flex justify-between items-center text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
+            <span>🧭 Üst Menü</span>
+            {isNavbarOpen ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
+          </button>
+          {isNavbarOpen && (
+            <div className="p-3 space-y-3 border-t border-slate-200 dark:border-slate-800 flex flex-col">
+              <label className="flex items-center gap-2 text-xs font-bold cursor-pointer mb-2">
+                <input type="checkbox" checked={data.navbar?.enabled ?? true} onChange={(e) => setData(prev => ({ ...prev, navbar: { ...(prev.navbar || { links: [] }), enabled: e.target.checked } }))} />
+                Menüyü Göster
+              </label>
+              
+              <div className="space-y-2">
+                {(data.navbar?.links || []).map((link, idx) => (
+                  <div key={link.id} className="bg-white dark:bg-slate-950 p-2 rounded border border-slate-200 dark:border-slate-800 space-y-1 relative">
+                    <button onClick={() => {
+                      const newLinks = [...(data.navbar?.links || [])];
+                      newLinks.splice(idx, 1);
+                      setData(prev => ({ ...prev, navbar: { ...prev.navbar, links: newLinks } }));
+                    }} className="absolute top-1 right-1 text-red-500 hover:bg-red-50 p-1 rounded"><Trash2 className="w-3 h-3"/></button>
+                    
+                    <div><label className="text-[10px] text-slate-500">Menü Adı</label>
+                    <input value={link.label} onChange={e => {
+                      const newLinks = [...(data.navbar?.links || [])];
+                      newLinks[idx].label = e.target.value;
+                      setData(prev => ({ ...prev, navbar: { ...prev.navbar, links: newLinks } }));
+                    }} className="w-full p-1 text-xs border rounded bg-white dark:bg-slate-950"/></div>
+                    
+                    <div><label className="text-[10px] text-slate-500">Link (Örn: #projeler, /iletisim)</label>
+                    <input value={link.url} onChange={e => {
+                      const newLinks = [...(data.navbar?.links || [])];
+                      newLinks[idx].url = e.target.value;
+                      setData(prev => ({ ...prev, navbar: { ...prev.navbar, links: newLinks } }));
+                    }} className="w-full p-1 text-xs border rounded bg-white dark:bg-slate-950"/></div>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => {
+                const newLinks = [...(data.navbar?.links || []), { id: Math.random().toString(36).substring(2), label: "Yeni Menü", url: "#" }];
+                setData(prev => ({ ...prev, navbar: { ...(prev.navbar || { enabled: true }), links: newLinks } }));
+              }} className="w-full text-center bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-800/50 p-2 rounded text-xs font-bold hover:bg-blue-100 transition">+ Menü Elemanı Ekle</button>
+            </div>
+          )}
+        </div>
+
         {/* Proje Şablonları */}
         <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           <button onClick={() => { setIsProjectsOpen(!isProjectsOpen); setPreviewMode('main'); }} className="w-full p-3 flex justify-between items-center text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -593,7 +646,24 @@ export default function AdminPage() {
               const displayElements = data.hero?.elements ? [...data.hero.elements] : [];
               
               return (
-                <CanvasEngine 
+                <>
+                  {/* Navbar Preview */}
+                  {data.navbar?.enabled && data.navbar?.links?.length > 0 && (
+                    <nav className="absolute top-0 left-0 w-full z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm pointer-events-none">
+                      <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-center gap-8">
+                        {data.navbar.links.map((link: any) => (
+                          <span 
+                            key={link.id} 
+                            className="text-sm font-bold text-slate-600 dark:text-slate-300"
+                          >
+                            {link.label}
+                          </span>
+                        ))}
+                      </div>
+                    </nav>
+                  )}
+                  
+                  <CanvasEngine 
                   elements={displayElements}
                   isEditMode={true}
                   selectedIds={selectedCanvasIds}
@@ -612,6 +682,7 @@ export default function AdminPage() {
                     });
                   }}
                 />
+                </>
               );
             })()
           ) : (

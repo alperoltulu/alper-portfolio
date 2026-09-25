@@ -68,6 +68,8 @@ export default function Home() {
 
           res.data.hero.elements = res.data.hero.elements.filter((e: any) => e.type !== 'projects' && e.type !== 'hero');
 
+          if (!res.data.navbar) res.data.navbar = { enabled: true, links: [] };
+
           setData(res.data);
         }
         setIsLoading(false);
@@ -83,6 +85,23 @@ export default function Home() {
 
   return (
     <main className="h-[4000px] w-full relative overflow-x-hidden">
+      {/* Navbar */}
+      {data.navbar?.enabled && data.navbar?.links?.length > 0 && (
+        <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+          <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-center gap-8">
+            {data.navbar.links.map((link: any) => (
+              <a 
+                key={link.id} 
+                href={link.url}
+                className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-blue-500 dark:hover:text-blue-400 transition"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </nav>
+      )}
+
       <CanvasEngine 
         elements={displayElements}
         isEditMode={false}
