@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import HeroSection from "@/components/builder/HeroSection";
 import CanvasEngine from "@/components/builder/CanvasEngine";
 import HeroStatic from "@/components/builder/HeroStatic";
-import ProjectsSection from "@/components/builder/ProjectsSection";
 import BlockRenderer, { Block, BlockType } from "@/components/builder/BlockRenderer";
 import { CanvasElement, CanvasElementType } from "@/types/canvas";
 import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Minus, UploadCloud, Copy, X } from "lucide-react";
@@ -71,14 +70,29 @@ export default function AdminPage() {
         if (res.data) {
           if (!res.data.hero) res.data.hero = { elements: [] };
           if (!res.data.hero.elements) res.data.hero.elements = [];
-          if (!res.data.projects) res.data.projects = [];
           
           if (!res.data.hero.elements.find((e: any) => e.type === 'hero')) {
             res.data.hero.elements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, h: 400, props: {} });
           }
-          if (!res.data.hero.elements.find((e: any) => e.type === 'projects')) {
-            res.data.hero.elements.push({ id: 'projects-block', type: 'projects', x: 50, y: 70, w: 1200, h: 800, props: {} });
+          
+          // Migrate old projects array to individual project elements
+          if (res.data.projects && res.data.projects.length > 0) {
+            res.data.projects.forEach((proj: any, i: number) => {
+              res.data.hero.elements.push({
+                id: 'proj-' + Math.random().toString(36).substr(2, 9),
+                type: 'project',
+                x: 25 + (i % 2) * 50, // Stagger them
+                y: 60 + i * 10,
+                w: 400,
+                props: proj
+              });
+            });
+            res.data.projects = []; // Clear old projects array
           }
+
+          // Remove the old 'projects' (plural) block if it exists
+          res.data.hero.elements = res.data.hero.elements.filter((e: any) => e.type !== 'projects');
+
           setData(res.data);
         }
       })
@@ -243,13 +257,27 @@ export default function AdminPage() {
   };
 
   // PROJECT LOGIC
-  const addProject = () => setData(prev => ({ ...prev, projects: [{ title: "Yeni Proje", description: "", image: "", url: "", template: "1", tags: [] }, ...prev.projects] }));
-  const updateProject = (index: number, key: string, value: any) => setData(prev => {
-    const newProjects = [...prev.projects];
-    newProjects[index] = { ...newProjects[index], [key]: value };
-    return { ...prev, projects: newProjects };
-  });
-  const removeProject = (index: number) => setData(prev => ({ ...prev, projects: prev.projects.filter((_, i) => i !== index) }));
+  const addProject = () => setData(prev => ({ 
+    ...prev, 
+    hero: { 
+      ...prev.hero, 
+      elements: [
+        { id: 'proj-'+Math.random().toString(36).substr(2, 9), type: 'project' as CanvasElementType, x: 50, y: 100, w: 400, props: { title: "Yeni Proje", description: "", image: "", url: "", template: "1" } }, 
+        ...(prev.hero.elements || [])
+      ] 
+    } 
+  }));
+  const updateProject = (id: string, key: string, value: any) => setData(prev => ({ 
+    ...prev, 
+    hero: { 
+      ...prev.hero, 
+      elements: prev.hero.elements.map((el: any) => el.id === id ? { ...el, props: { ...el.props, [key]: value } } : el) 
+    } 
+  }));
+  const removeProject = (id: string) => setData(prev => ({ 
+    ...prev, 
+    hero: { ...prev.hero, elements: prev.hero.elements.filter((el: any) => el.id !== id) } 
+  }));
 
   // MAIN PAGE CANVAS BUILDER LOGIC
   const addCanvasElement = (type: CanvasElementType) => {
@@ -462,12 +490,12 @@ export default function AdminPage() {
           {isProjectsOpen && (
             <div className="p-3 space-y-4 border-t border-slate-200 dark:border-slate-800">
               <button onClick={addProject} className="w-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded text-xs font-bold">+ Yeni Proje Ekle</button>
-              {(data.projects || []).map((proj: any, i: number) => (
-                <div key={i} className="relative bg-white dark:bg-slate-950 p-2 rounded border border-slate-200 dark:border-slate-800 space-y-2">
-                  <button onClick={() => removeProject(i)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4"/></button>
-                  <input value={proj.title} onChange={e => updateProject(i, "title", e.target.value)} className="w-[90%] p-1 text-xs border rounded bg-transparent" placeholder="Proje Adı" />
+              {(data.hero?.elements || []).filter((e: any) => e.type === 'project').map((proj: any) => (
+                <div key={proj.id} className="relative bg-white dark:bg-slate-950 p-2 rounded border border-slate-200 dark:border-slate-800 space-y-2">
+                  <button onClick={() => removeProject(proj.id)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4"/></button>
+                  <input value={proj.props.title || ""} onChange={e => updateProject(proj.id, "title", e.target.value)} className="w-[90%] p-1 text-xs border rounded bg-transparent" placeholder="Proje Adı" />
                   
-                  <select value={proj.template || "1"} onChange={e => updateProject(i, "template", e.target.value)} className="w-full p-1 text-xs border rounded bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300">
+                  <select value={proj.props.template || "1"} onChange={e => updateProject(proj.id, "template", e.target.value)} className="w-full p-1 text-xs border rounded bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300">
                     <option value="1">Şablon 1: Klasik Modern Kart (İkonlu)</option>
                     <option value="2">Şablon 2: Resimli Büyük Kapak (Banner)</option>
                     <option value="3">Şablon 3: Minimalist Metin (Sade)</option>
@@ -475,9 +503,9 @@ export default function AdminPage() {
                     <option value="5">Şablon 5: Glassmorphism (Bulanık Efekt)</option>
                   </select>
 
-                  <textarea value={proj.description} onChange={e => updateProject(i, "description", e.target.value)} className="w-full p-1 text-xs border rounded h-12 bg-transparent" placeholder="Proje Açıklaması" />
-                  <input value={proj.image} onChange={e => updateProject(i, "image", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Resim URL (Şablon 2, 4 ve 5 için)" />
-                  <input value={proj.url} onChange={e => updateProject(i, "url", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Proje Linki" />
+                  <textarea value={proj.props.description || ""} onChange={e => updateProject(proj.id, "description", e.target.value)} className="w-full p-1 text-xs border rounded h-12 bg-transparent resize-none" placeholder="Proje Açıklaması" />
+                  <input value={proj.props.image || ""} onChange={e => updateProject(proj.id, "image", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Resim URL (Şablon 2, 4 ve 5 için)" />
+                  <input value={proj.props.url || ""} onChange={e => updateProject(proj.id, "url", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Proje Linki" />
                 </div>
               ))}
             </div>
@@ -564,9 +592,6 @@ export default function AdminPage() {
               if (!displayElements.find((e: any) => e.type === 'hero')) {
                 displayElements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, props: {} });
               }
-              if (!displayElements.find((e: any) => e.type === 'projects')) {
-                displayElements.push({ id: 'projects-block', type: 'projects', x: 50, y: 70, w: 1200, props: {} });
-              }
               
               return (
                 <CanvasEngine 
@@ -576,7 +601,6 @@ export default function AdminPage() {
                   onSelect={setSelectedCanvasId}
                   onUpdateElement={updateCanvasElement}
                   heroNode={<HeroStatic {...data.hero} />}
-                  projectsNode={<ProjectsSection projects={data.projects} />}
                 />
               );
             })()

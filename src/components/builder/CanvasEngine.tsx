@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { CanvasElement } from '@/types/canvas';
+import ProjectCard from './ProjectCard';
 // Removed missing icons
 
 interface CanvasEngineProps {
@@ -10,9 +11,8 @@ interface CanvasEngineProps {
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
   onUpdateElement?: (id: string, updates: Partial<CanvasElement>) => void;
-  globalData?: any; // To render hero and projects
+  globalData?: any; // To render hero
   heroNode?: React.ReactNode;
-  projectsNode?: React.ReactNode;
 }
 
 export default function CanvasEngine({
@@ -22,13 +22,13 @@ export default function CanvasEngine({
   onSelect,
   onUpdateElement,
   globalData,
-  heroNode,
-  projectsNode
+  heroNode
 }: CanvasEngineProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   
   const [dragState, setDragState] = useState<{ id: string, startX: number, startY: number, startElemX: number, startElemY: number } | null>(null);
   const [resizeState, setResizeState] = useState<{ id: string, startX: number, startY: number, startW: number, startH: number } | null>(null);
+  const [guideLines, setGuideLines] = useState<{ x?: number, y?: number } | null>(null);
 
   const handlePointerDown = (e: React.PointerEvent, id: string, elX: number, elY: number) => {
     if (!isEditMode) return;
@@ -74,10 +74,29 @@ export default function CanvasEngine({
       let newX = dragState.startElemX + dxPct;
       let newY = dragState.startElemY + dyPct;
 
-      newX = Math.max(0, Math.min(100, newX));
-      newY = Math.max(0, Math.min(100, newY));
+      // Snapping Logic
+      let snappedX = newX;
+      let snappedY = newY;
+      const SNAP_THRESHOLD = 1.5; // percentage
+      
+      let guideX: number | undefined = undefined;
+      let guideY: number | undefined = undefined;
 
-      onUpdateElement(dragState.id, { x: newX, y: newY });
+      // Center snap
+      if (Math.abs(newX - 50) < SNAP_THRESHOLD) { snappedX = 50; guideX = 50; }
+      
+      // Snap to other elements
+      elements.forEach(el => {
+        if (el.id === dragState.id) return;
+        if (Math.abs(newX - el.x) < SNAP_THRESHOLD) { snappedX = el.x; guideX = el.x; }
+        if (Math.abs(newY - el.y) < SNAP_THRESHOLD) { snappedY = el.y; guideY = el.y; }
+      });
+
+      snappedX = Math.max(0, Math.min(100, snappedX));
+      snappedY = Math.max(0, Math.min(100, snappedY));
+
+      setGuideLines({ x: guideX, y: guideY });
+      onUpdateElement(dragState.id, { x: snappedX, y: snappedY });
     } else if (resizeState) {
       const dx = e.clientX - resizeState.startX;
       const dy = e.clientY - resizeState.startY;
@@ -93,6 +112,7 @@ export default function CanvasEngine({
     if (dragState) {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       setDragState(null);
+      setGuideLines(null);
     }
     if (resizeState) {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
@@ -207,9 +227,13 @@ export default function CanvasEngine({
         
       case 'hero':
         return <div style={{ width: el.w ? `${el.w}px` : '100%', height: el.h ? `${el.h}px` : 'auto' }} className="pointer-events-none [&>*]:pointer-events-auto">{heroNode}</div>;
-        
-      case 'projects':
-        return <div style={{ width: el.w ? `${el.w}px` : '100%', height: el.h ? `${el.h}px` : 'auto' }} className="pointer-events-none [&>*]:pointer-events-auto w-[100vw] sm:w-[90vw] md:w-[80vw] lg:w-[1200px] max-w-full">{projectsNode}</div>;
+
+      case 'project':
+        return (
+          <div style={{ width: el.w ? `${el.w}px` : '400px', height: el.h ? `${el.h}px` : 'auto' }} className="pointer-events-none [&>*]:pointer-events-auto w-full h-full">
+            <ProjectCard project={el.props} />
+          </div>
+        );
 
       default:
         return <div>Bilinmeyen Araç</div>;
@@ -226,6 +250,14 @@ export default function CanvasEngine({
       onPointerCancel={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
+      {/* Guide Lines */}
+      {guideLines?.x !== undefined && (
+        <div className="absolute top-0 bottom-0 border-l border-red-500 z-50 pointer-events-none" style={{ left: `${guideLines.x}%` }} />
+      )}
+      {guideLines?.y !== undefined && (
+        <div className="absolute left-0 right-0 border-t border-red-500 z-50 pointer-events-none" style={{ top: `${guideLines.y}%` }} />
+      )}
+
       {elements.map(el => (
         <div
           key={el.id}
