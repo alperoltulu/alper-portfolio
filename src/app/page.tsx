@@ -47,6 +47,7 @@ export default function Home() {
         subtitle={data.hero.subtitle}
         title={data.hero.title}
         description={data.hero.description}
+        elements={data.hero.elements || []}
       />
       <ProjectsSection projects={data.projects} />
     </main>
