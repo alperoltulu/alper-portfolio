@@ -9,9 +9,10 @@ import ProjectCard from './ProjectCard';
 interface CanvasEngineProps {
   elements: CanvasElement[];
   isEditMode?: boolean;
-  selectedId?: string | null;
-  onSelect?: (id: string | null) => void;
+  selectedIds?: string[];
+  onSelect?: (ids: string[]) => void;
   onUpdateElement?: (id: string, updates: Partial<CanvasElement>) => void;
+  onUpdateMultiElements?: (updates: { id: string, updates: Partial<CanvasElement> }[]) => void;
   globalData?: any; // To render hero
   heroNode?: React.ReactNode;
 }
@@ -19,24 +20,45 @@ interface CanvasEngineProps {
 export default function CanvasEngine({
   elements = [],
   isEditMode = false,
-  selectedId = null,
+  selectedIds = [],
   onSelect,
   onUpdateElement,
+  onUpdateMultiElements,
   globalData,
   heroNode
 }: CanvasEngineProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   
-  const [dragState, setDragState] = useState<{ id: string, startX: number, startY: number, startElemX: number, startElemY: number } | null>(null);
+  const [dragState, setDragState] = useState<{ startX: number, startY: number, initialPositions: {id: string, x: number, y: number}[] } | null>(null);
   const [resizeState, setResizeState] = useState<{ id: string, startX: number, startY: number, startW: number, startH: number } | null>(null);
+  const [selectionBox, setSelectionBox] = useState<{ startX: number, startY: number, endX: number, endY: number } | null>(null);
   const [guideLines, setGuideLines] = useState<{ x?: number, y?: number } | null>(null);
 
   const handlePointerDown = (e: React.PointerEvent, id: string, elX: number, elY: number) => {
     if (!isEditMode) return;
     e.stopPropagation();
-    if (onSelect) onSelect(id);
     
-    setDragState({ id, startX: e.clientX, startY: e.clientY, startElemX: elX, startElemY: elY });
+    let newSelectedIds = [...selectedIds];
+    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      if (newSelectedIds.includes(id)) {
+        newSelectedIds = newSelectedIds.filter(i => i !== id);
+      } else {
+        newSelectedIds.push(id);
+      }
+    } else {
+      if (!newSelectedIds.includes(id)) {
+        newSelectedIds = [id];
+      }
+    }
+    
+    if (onSelect) onSelect(newSelectedIds);
+    
+    const initialPositions = newSelectedIds.map(sId => {
+      const elem = elements.find(el => el.id === sId);
+      return { id: sId, x: elem?.x || 0, y: elem?.y || 0 };
+    });
+    
+    setDragState({ startX: e.clientX, startY: e.clientY, initialPositions });
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
@@ -72,32 +94,36 @@ export default function CanvasEngine({
       const dxPct = (dx / rect.width) * 100;
       const dyPct = (dy / rect.height) * 100;
 
-      let newX = dragState.startElemX + dxPct;
-      let newY = dragState.startElemY + dyPct;
-
-      // Snapping Logic
-      let snappedX = newX;
-      let snappedY = newY;
-      const SNAP_THRESHOLD = 1.5; // percentage
-      
+      // Snapping logic only if single element is dragged
       let guideX: number | undefined = undefined;
       let guideY: number | undefined = undefined;
-
-      // Center snap
-      if (Math.abs(newX - 50) < SNAP_THRESHOLD) { snappedX = 50; guideX = 50; }
       
-      // Snap to other elements
-      elements.forEach(el => {
-        if (el.id === dragState.id) return;
-        if (Math.abs(newX - el.x) < SNAP_THRESHOLD) { snappedX = el.x; guideX = el.x; }
-        if (Math.abs(newY - el.y) < SNAP_THRESHOLD) { snappedY = el.y; guideY = el.y; }
+      const updates = dragState.initialPositions.map(pos => {
+        let newX = pos.x + dxPct;
+        let newY = pos.y + dyPct;
+
+        if (dragState.initialPositions.length === 1) {
+          const SNAP_THRESHOLD = 1.5;
+          if (Math.abs(newX - 50) < SNAP_THRESHOLD) { newX = 50; guideX = 50; }
+          elements.forEach(el => {
+            if (el.id === pos.id) return;
+            if (Math.abs(newX - el.x) < SNAP_THRESHOLD) { newX = el.x; guideX = el.x; }
+            if (Math.abs(newY - el.y) < SNAP_THRESHOLD) { newY = el.y; guideY = el.y; }
+          });
+        }
+        
+        newX = Math.max(0, Math.min(100, newX));
+        newY = Math.max(0, Math.min(100, newY));
+        return { id: pos.id, updates: { x: newX, y: newY } };
       });
 
-      snappedX = Math.max(0, Math.min(100, snappedX));
-      snappedY = Math.max(0, Math.min(100, snappedY));
-
       setGuideLines({ x: guideX, y: guideY });
-      onUpdateElement(dragState.id, { x: snappedX, y: snappedY });
+      
+      if (onUpdateMultiElements) {
+        onUpdateMultiElements(updates);
+      } else if (onUpdateElement) {
+        updates.forEach(u => onUpdateElement(u.id, u.updates));
+      }
     } else if (resizeState) {
       const dx = e.clientX - resizeState.startX;
       const dy = e.clientY - resizeState.startY;
@@ -106,6 +132,8 @@ export default function CanvasEngine({
       const newH = Math.max(20, resizeState.startH + dy);
 
       onUpdateElement(resizeState.id, { w: newW, h: newH });
+    } else if (selectionBox) {
+      setSelectionBox(prev => prev ? { ...prev, endX: e.clientX, endY: e.clientY } : null);
     }
   };
 
@@ -119,10 +147,41 @@ export default function CanvasEngine({
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       setResizeState(null);
     }
+    if (selectionBox) {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        
+        const minX = Math.min(selectionBox.startX, selectionBox.endX) - rect.left;
+        const maxX = Math.max(selectionBox.startX, selectionBox.endX) - rect.left;
+        const minY = Math.min(selectionBox.startY, selectionBox.endY) - rect.top;
+        const maxY = Math.max(selectionBox.startY, selectionBox.endY) - rect.top;
+
+        const minXPct = (minX / rect.width) * 100;
+        const maxXPct = (maxX / rect.width) * 100;
+        const minYPct = (minY / rect.height) * 100;
+        const maxYPct = (maxY / rect.height) * 100;
+
+        // Ensure we actually dragged a box (not just a click)
+        if (Math.abs(selectionBox.endX - selectionBox.startX) > 10 || Math.abs(selectionBox.endY - selectionBox.startY) > 10) {
+          const selected = elements.filter(el => {
+            return el.x >= minXPct && el.x <= maxXPct && el.y >= minYPct && el.y <= maxYPct;
+          }).map(el => el.id);
+          
+          if (onSelect) onSelect(selected);
+        }
+      }
+      setSelectionBox(null);
+    }
   };
 
-  const handleCanvasClick = () => {
-    if (isEditMode && onSelect) onSelect(null);
+  const handleCanvasPointerDown = (e: React.PointerEvent) => {
+    if (!isEditMode) return;
+    if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      if (onSelect) onSelect([]);
+    }
+    setSelectionBox({ startX: e.clientX, startY: e.clientY, endX: e.clientX, endY: e.clientY });
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const handleElementDrop = (e: React.DragEvent, el: CanvasElement) => {
@@ -356,12 +415,23 @@ export default function CanvasEngine({
   return (
     <div 
       className={`absolute inset-0 w-full h-full flex justify-center ${isEditMode ? 'z-40 overflow-auto' : 'z-10 pointer-events-none overflow-hidden'}`}
-      onClick={handleCanvasClick}
+      onPointerDown={handleCanvasPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
+      {selectionBox && (
+        <div 
+          className="fixed border border-blue-500 bg-blue-500/20 pointer-events-none z-[100]"
+          style={{
+            left: Math.min(selectionBox.startX, selectionBox.endX),
+            top: Math.min(selectionBox.startY, selectionBox.endY),
+            width: Math.abs(selectionBox.endX - selectionBox.startX),
+            height: Math.abs(selectionBox.endY - selectionBox.startY)
+          }}
+        />
+      )}
       <div 
         ref={canvasRef}
         className="relative w-[1200px] h-full shrink-0"
@@ -392,7 +462,7 @@ export default function CanvasEngine({
           style={{
             left: `${el.x}%`,
             top: `${el.y}%`,
-            zIndex: selectedId === el.id ? 50 : 10
+            zIndex: selectedIds.includes(el.id) ? 50 : 10
           }}
           onPointerDown={(e) => handlePointerDown(e, el.id, el.x, el.y)}
           onDragOver={handleElementDragOver}
@@ -402,14 +472,17 @@ export default function CanvasEngine({
           }}
         >
           {/* Seçim Çerçevesi ve Boyutlandırma Tutamacı */}
-          {isEditMode && selectedId === el.id && (
+          {isEditMode && selectedIds.includes(el.id) && (
             <>
               <div className="absolute -inset-3 border-2 border-dashed border-blue-500 rounded-lg pointer-events-none z-0" />
-              <div 
-                className="absolute -right-4 -bottom-4 w-5 h-5 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:scale-110 transition-transform"
-                onPointerDown={(e) => handleResizeDown(e, el)}
-                title="Boyutlandırmak için sürükleyin"
-              />
+              {/* Sadece tekli seçimde boyutlandırma gösterelim, çoklu seçimde karmaşık olur */}
+              {selectedIds.length === 1 && (
+                <div 
+                  className="absolute -right-4 -bottom-4 w-5 h-5 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize z-20 hover:scale-110 transition-transform"
+                  onPointerDown={(e) => handleResizeDown(e, el)}
+                  title="Boyutlandırmak için sürükleyin"
+                />
+              )}
             </>
           )}
           

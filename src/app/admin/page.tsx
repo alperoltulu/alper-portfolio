@@ -43,8 +43,8 @@ export default function AdminPage() {
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null);
 
   // Canvas Selection & Clipboard
-  const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
-  const [clipboard, setClipboard] = useState<CanvasElement | null>(null);
+  const [selectedCanvasIds, setSelectedCanvasIds] = useState<string[]>([]);
+  const [clipboard, setClipboard] = useState<CanvasElement[] | null>(null);
 
   const showToast = (message: string, type: 'success'|'error'|'info' = 'success') => {
     setToast({ message, type });
@@ -134,37 +134,39 @@ export default function AdminPage() {
 
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'c' || e.key === 'C') {
-          if (previewMode === 'main' && selectedCanvasId) {
-            const el = data.hero.elements.find(el => el.id === selectedCanvasId);
-            if (el) {
-              setClipboard(JSON.parse(JSON.stringify(el)));
-              showToast("Kopyalandı (Ctrl+C)", "info");
+          if (previewMode === 'main' && selectedCanvasIds.length > 0) {
+            const els = data.hero.elements.filter(el => selectedCanvasIds.includes(el.id));
+            if (els.length > 0) {
+              setClipboard(JSON.parse(JSON.stringify(els)));
+              showToast(`${els.length} obje kopyalandı (Ctrl+C)`, "info");
             }
           }
         }
         if (e.key === 'v' || e.key === 'V') {
-          if (previewMode === 'main' && clipboard) {
-            const newId = Math.random().toString(36).substr(2, 9);
-            const pastedElement = {
-              ...clipboard,
-              id: newId,
-              x: Math.min(95, clipboard.x + 3),
-              y: Math.min(95, clipboard.y + 3)
-            };
+          if (previewMode === 'main' && clipboard && clipboard.length > 0) {
+            const pastedElements = clipboard.map(clip => ({
+              ...clip,
+              id: Math.random().toString(36).substr(2, 9),
+              x: Math.min(95, clip.x + 3),
+              y: Math.min(95, clip.y + 3)
+            }));
             setData(prev => ({
               ...prev,
-              hero: { ...prev.hero, elements: [...(prev.hero.elements || []), pastedElement] }
+              hero: { ...prev.hero, elements: [...(prev.hero.elements || []), ...pastedElements] }
             }));
-            setSelectedCanvasId(newId);
-            showToast("Yapıştırıldı (Ctrl+V)", "success");
+            setSelectedCanvasIds(pastedElements.map(p => p.id));
+            showToast(`${pastedElements.length} obje yapıştırıldı (Ctrl+V)`, "success");
           }
         }
       } else {
         if (e.key === 'Delete') {
-          if (previewMode === 'main' && selectedCanvasId) {
-            setData(prev => ({ ...prev, hero: { ...prev.hero, elements: prev.hero.elements.filter(el => el.id !== selectedCanvasId) } }));
-            setSelectedCanvasId(null);
-            showToast("Silindi (Del)", "info");
+          if (previewMode === 'main' && selectedCanvasIds.length > 0) {
+            setData(prev => ({ 
+              ...prev, 
+              hero: { ...prev.hero, elements: prev.hero.elements.filter(el => !selectedCanvasIds.includes(el.id)) } 
+            }));
+            setSelectedCanvasIds([]);
+            showToast(`${selectedCanvasIds.length} obje silindi (Del)`, "info");
           }
         }
       }
@@ -172,7 +174,7 @@ export default function AdminPage() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [previewMode, selectedCanvasId, clipboard, data.hero.elements]);
+  }, [previewMode, selectedCanvasIds, clipboard, data.hero.elements]);
 
 
   const handleSave = async () => {
@@ -312,7 +314,7 @@ export default function AdminPage() {
       ...prev,
       hero: { ...prev.hero, elements: [...(prev.hero.elements || []), newElement] }
     }));
-    setSelectedCanvasId(id);
+    setSelectedCanvasIds([id]);
     setPreviewMode('main');
   };
   const updateCanvasElement = (id: string, updates: Partial<CanvasElement>) => {
@@ -321,9 +323,12 @@ export default function AdminPage() {
   const updateCanvasElementProps = (id: string, propField: string, value: any) => {
     setData(prev => ({ ...prev, hero: { ...prev.hero, elements: prev.hero.elements.map(el => el.id === id ? { ...el, props: { ...el.props, [propField]: value } } : el) } }));
   };
+  const updateMultiCanvasElementProps = (ids: string[], propField: string, value: any) => {
+    setData(prev => ({ ...prev, hero: { ...prev.hero, elements: prev.hero.elements.map(el => ids.includes(el.id) ? { ...el, props: { ...el.props, [propField]: value } } : el) } }));
+  };
   const removeCanvasElement = (id: string) => {
     setData(prev => ({ ...prev, hero: { ...prev.hero, elements: prev.hero.elements.filter(el => el.id !== id) } }));
-    setSelectedCanvasId(null);
+    setSelectedCanvasIds(prev => prev.filter(pId => pId !== id));
   };
 
   // File Upload Logic (Cloudflare R2)
@@ -591,9 +596,21 @@ export default function AdminPage() {
                 <CanvasEngine 
                   elements={displayElements}
                   isEditMode={true}
-                  selectedId={selectedCanvasId}
-                  onSelect={setSelectedCanvasId}
+                  selectedIds={selectedCanvasIds}
+                  onSelect={(ids) => setSelectedCanvasIds(Array.isArray(ids) ? ids : [ids])}
                   onUpdateElement={updateCanvasElement}
+                  onUpdateMultiElements={(updates) => {
+                    setData(prev => {
+                      let newElements = [...(prev.hero.elements || [])];
+                      updates.forEach(u => {
+                        const idx = newElements.findIndex(el => el.id === u.id);
+                        if (idx > -1) {
+                          newElements[idx] = { ...newElements[idx], ...u.updates };
+                        }
+                      });
+                      return { ...prev, hero: { ...prev.hero, elements: newElements } };
+                    });
+                  }}
                 />
               );
             })()
@@ -692,10 +709,54 @@ export default function AdminPage() {
         {previewMode === 'main' && (
           <div className="flex-1 overflow-y-auto">
             <h3 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">Seçili Obje Özellikleri</h3>
-            {selectedCanvasEl ? (
+            
+            {selectedCanvasIds.length > 1 ? (
               <div className="space-y-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-                <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-2 mb-2">
-                  <span className="font-bold text-sm uppercase">{selectedCanvasEl.type}</span>
+                <div className="p-3 bg-blue-50 text-blue-800 text-xs rounded border border-blue-100 mb-4">
+                  <strong>{selectedCanvasIds.length} obje seçili.</strong><br/>Aşağıdan tüm seçili objelere ortak animasyon atayabilirsiniz.
+                </div>
+                
+                {/* --- ORTAK AYARLAR (ANIMASYON) --- */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Toplu Animasyon</h4>
+                  
+                  <div>
+                    <label className="text-xs text-slate-500">Giriş Animasyonu</label>
+                    <select 
+                      onChange={e => updateMultiCanvasElementProps(selectedCanvasIds, "animationType", e.target.value)} 
+                      className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950"
+                    >
+                      <option value="">(Değiştirme)</option>
+                      <option value="none">Animasyon Yok</option>
+                      <option value="fade-in">Karararak Belirme (Fade In)</option>
+                      <option value="slide-up">Aşağıdan Yukarı (Slide Up)</option>
+                      <option value="slide-left">Sağdan Sola (Slide Left)</option>
+                      <option value="slide-right">Soldan Sağa (Slide Right)</option>
+                      <option value="zoom-in">Büyüyerek Gelme (Zoom In)</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs text-slate-500">Animasyon Gecikmesi (Saniye)</label>
+                    <input 
+                      type="number" 
+                      step="0.1" 
+                      min="0"
+                      onChange={e => updateMultiCanvasElementProps(selectedCanvasIds, "animationDelay", Number(e.target.value))} 
+                      className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" 
+                      placeholder="(Değiştirme)"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : selectedCanvasIds.length === 1 && data.hero.elements?.find(el => el.id === selectedCanvasIds[0]) ? (
+              <div className="space-y-4 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                {(() => {
+                  const selectedCanvasEl = data.hero.elements.find(el => el.id === selectedCanvasIds[0])!;
+                  return (
+                    <>
+                      <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-2 mb-2">
+                        <span className="font-bold text-sm uppercase">{selectedCanvasEl.type}</span>
                   <button onClick={() => removeCanvasElement(selectedCanvasEl.id)} className="text-red-500 hover:bg-red-100 p-1 rounded"><Trash2 className="w-4 h-4"/></button>
                 </div>
                 
@@ -858,6 +919,9 @@ export default function AdminPage() {
                   )}
                 </div>
 
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <div className="text-xs text-slate-400 text-center mt-10">Tuvalden bir şekle tıklayın veya araç ekleyin.</div>
