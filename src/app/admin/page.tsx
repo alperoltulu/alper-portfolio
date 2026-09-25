@@ -228,6 +228,15 @@ export default function AdminPage() {
     setEditingPage(prev => ({ ...prev, blocks: newBlocks }));
   };
 
+  // PROJECT LOGIC
+  const addProject = () => setData(prev => ({ ...prev, projects: [{ title: "Yeni Proje", description: "", image: "", url: "", tags: [] }, ...prev.projects] }));
+  const updateProject = (index: number, key: string, value: any) => setData(prev => {
+    const newProjects = [...prev.projects];
+    newProjects[index] = { ...newProjects[index], [key]: value };
+    return { ...prev, projects: newProjects };
+  });
+  const removeProject = (index: number) => setData(prev => ({ ...prev, projects: prev.projects.filter((_, i) => i !== index) }));
+
   // MAIN PAGE CANVAS BUILDER LOGIC
   const addCanvasElement = (type: CanvasElementType) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -426,6 +435,28 @@ export default function AdminPage() {
               <div><label className="text-xs text-slate-500">Üst Başlık</label><input value={data.hero.subtitle} onChange={e => handleHeroChange("subtitle", e.target.value)} className="w-full p-2 text-sm rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800" /></div>
               <div><label className="text-xs text-slate-500">Ana Başlık</label><textarea value={data.hero.title} onChange={e => handleHeroChange("title", e.target.value)} className="w-full p-2 text-sm rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-16 resize-none" /></div>
               <div><label className="text-xs text-slate-500">Açıklama</label><textarea value={data.hero.description} onChange={e => handleHeroChange("description", e.target.value)} className="w-full p-2 text-sm rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-20 resize-none" /></div>
+            </div>
+          )}
+        </div>
+
+        {/* Eski Projeler (Projelerim) */}
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <button onClick={() => { setIsProjectsOpen(!isProjectsOpen); setPreviewMode('main'); }} className="w-full p-3 flex justify-between items-center text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
+            <span>🚀 Eski Projeler (Projelerim)</span>
+            {isProjectsOpen ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
+          </button>
+          {isProjectsOpen && (
+            <div className="p-3 space-y-4 border-t border-slate-200 dark:border-slate-800">
+              <button onClick={addProject} className="w-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded text-xs font-bold">+ Yeni Proje Ekle</button>
+              {data.projects.map((proj, i) => (
+                <div key={i} className="relative bg-white dark:bg-slate-950 p-2 rounded border border-slate-200 dark:border-slate-800 space-y-2">
+                  <button onClick={() => removeProject(i)} className="absolute top-2 right-2 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4"/></button>
+                  <input value={proj.title} onChange={e => updateProject(i, "title", e.target.value)} className="w-[90%] p-1 text-xs border rounded bg-transparent" placeholder="Proje Adı" />
+                  <textarea value={proj.description} onChange={e => updateProject(i, "description", e.target.value)} className="w-full p-1 text-xs border rounded h-12 bg-transparent" placeholder="Proje Açıklaması" />
+                  <input value={proj.image} onChange={e => updateProject(i, "image", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Resim URL (Medya Deposundan kopyalayın)" />
+                  <input value={proj.url} onChange={e => updateProject(i, "url", e.target.value)} className="w-full p-1 text-xs border rounded bg-transparent" placeholder="Proje Linki" />
+                </div>
+              ))}
             </div>
           )}
         </div>
