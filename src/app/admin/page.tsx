@@ -739,6 +739,7 @@ export default function AdminPage() {
                   <>
                     <div><label className="text-xs text-slate-500">Logo Metni (Örn: A.)</label><input value={selectedCanvasEl.props.text || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "text", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" /></div>
                     <div><label className="text-[10px] text-slate-500">Veya İç Resim (Sürükle bırak)</label><input value={selectedCanvasEl.props.image || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "image", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" /></div>
+                    <div><label className="text-xs text-slate-500">Gidilecek Link (URL)</label><input value={selectedCanvasEl.props.url || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "url", e.target.value)} placeholder="Örn: / veya https://..." className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" /></div>
                   </>
                 )}
 

@@ -193,15 +193,20 @@ export default function CanvasEngine({
 
       case 'logo':
         const isImageLogo = !!el.props.image;
+        const logoUrl = !isEditMode && el.props.url ? el.props.url : undefined;
         return (
-          <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-900/20 rotate-[-5deg] hover:rotate-0 transition-all border-4 border-white dark:border-slate-800 overflow-hidden relative cursor-pointer group">
+          <a 
+            href={logoUrl}
+            onClick={e => isEditMode && e.preventDefault()}
+            className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-900/20 rotate-[-5deg] hover:rotate-0 transition-all border-4 border-white dark:border-slate-800 overflow-hidden relative cursor-pointer group block"
+          >
             {isImageLogo ? (
               <img src={el.props.image} alt="logo" className="w-full h-full object-cover" />
             ) : (
               <span className="group-hover:scale-110 transition-transform">{el.props.text || "A."}</span>
             )}
-            <div className="absolute inset-0 rounded-[2rem] ring-inset ring-2 ring-white/20"></div>
-          </div>
+            <div className="absolute inset-0 rounded-[2rem] ring-inset ring-2 ring-white/20 pointer-events-none"></div>
+          </a>
         );
 
       case 'text':
