@@ -129,7 +129,7 @@ export default function CanvasEngine({
     e.preventDefault();
     e.stopPropagation();
     const url = e.dataTransfer.getData('text/plain');
-    if (url && (el.type === 'shape' || el.type === 'button' || el.type === 'project')) {
+    if (url && (el.type === 'shape' || el.type === 'button' || el.type === 'project' || el.type === 'logo')) {
       onUpdateElement(el.id, { props: { ...el.props, image: url } });
     }
   };
@@ -191,13 +191,48 @@ export default function CanvasEngine({
           />
         );
 
+      case 'logo':
+        const isImageLogo = !!el.props.image;
+        return (
+          <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-900/20 rotate-[-5deg] hover:rotate-0 transition-all border-4 border-white dark:border-slate-800 overflow-hidden relative cursor-pointer group">
+            {isImageLogo ? (
+              <img src={el.props.image} alt="logo" className="w-full h-full object-cover" />
+            ) : (
+              <span className="group-hover:scale-110 transition-transform">{el.props.text || "A."}</span>
+            )}
+            <div className="absolute inset-0 rounded-[2rem] ring-inset ring-2 ring-white/20"></div>
+          </div>
+        );
+
       case 'text':
+        let extraClasses = "";
+        let defaultColor = el.props.color || 'inherit';
+        let defaultSize = el.props.fontSize || 16;
+        
+        if (el.props.textType === 'subtitle') {
+          extraClasses = "font-bold tracking-wider uppercase";
+          defaultColor = el.props.color || '#94a3b8';
+          defaultSize = el.props.fontSize || 14;
+        } else if (el.props.textType === 'title') {
+          extraClasses = "font-black tracking-tight leading-tight";
+          defaultColor = el.props.color || 'inherit';
+          defaultSize = el.props.fontSize || 64;
+          if (el.props.isGradient) {
+            extraClasses += " bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-pink-500";
+          }
+        } else if (el.props.textType === 'description') {
+          extraClasses = "font-medium leading-relaxed";
+          defaultColor = el.props.color || '#64748b';
+          defaultSize = el.props.fontSize || 18;
+        }
+
         return (
           <div 
+            className={`${extraClasses} break-words whitespace-pre-wrap`}
             style={{
-              color: el.props.color || 'inherit',
-              fontSize: `${el.props.fontSize || 16}px`,
-              fontWeight: el.props.fontWeight || 'normal',
+              color: (el.props.textType === 'title' && el.props.isGradient) ? undefined : defaultColor,
+              fontSize: `${defaultSize}px`,
+              fontWeight: el.props.fontWeight || (el.props.textType === 'normal' ? 'normal' : undefined),
               width: el.w ? `${el.w}px` : 'max-content',
               textAlign: el.props.align || 'left'
             }}

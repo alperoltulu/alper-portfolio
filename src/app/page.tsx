@@ -27,8 +27,29 @@ export default function Home() {
           if (!res.data.hero) res.data.hero = { elements: [] };
           if (!res.data.hero.elements) res.data.hero.elements = [];
           
-          if (!res.data.hero.elements.find((e: any) => e.type === 'hero')) {
-            res.data.hero.elements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, h: 400, props: {} });
+          // Migrate old hero static data to individual canvas elements
+          if (res.data.hero.title || res.data.hero.subtitle || res.data.hero.avatarText) {
+            const newElements = [];
+            
+            if (res.data.hero.avatarText) {
+              newElements.push({ id: 'hero-logo', type: 'text', x: 50, y: 3, w: 120, h: 120, props: { text: res.data.hero.avatarText, isLogo: true } });
+            }
+            if (res.data.hero.subtitle) {
+              newElements.push({ id: 'hero-sub', type: 'text', x: 50, y: 7, w: 600, props: { text: res.data.hero.subtitle, textType: 'subtitle', color: '#94a3b8', fontSize: '18' } });
+            }
+            if (res.data.hero.title) {
+              newElements.push({ id: 'hero-title', type: 'text', x: 50, y: 12, w: 800, props: { text: res.data.hero.title, textType: 'title', isGradient: true } });
+            }
+            if (res.data.hero.description) {
+              newElements.push({ id: 'hero-desc', type: 'text', x: 50, y: 22, w: 700, props: { text: res.data.hero.description, textType: 'description', color: '#64748b', fontSize: '16' } });
+            }
+            
+            // Push migrated elements and clear old static fields
+            res.data.hero.elements.push(...newElements);
+            delete res.data.hero.title;
+            delete res.data.hero.subtitle;
+            delete res.data.hero.description;
+            delete res.data.hero.avatarText;
           }
           
           if (res.data.projects && res.data.projects.length > 0) {
@@ -45,7 +66,7 @@ export default function Home() {
             res.data.projects = [];
           }
 
-          res.data.hero.elements = res.data.hero.elements.filter((e: any) => e.type !== 'projects');
+          res.data.hero.elements = res.data.hero.elements.filter((e: any) => e.type !== 'projects' && e.type !== 'hero');
 
           setData(res.data);
         }
@@ -59,9 +80,6 @@ export default function Home() {
   }
 
   const displayElements = data.hero?.elements ? [...data.hero.elements] : [];
-  if (!displayElements.find((e: any) => e.type === 'hero')) {
-    displayElements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, props: {} });
-  }
 
   return (
     <main className="h-[4000px] w-full relative overflow-x-hidden">

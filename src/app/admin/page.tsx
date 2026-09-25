@@ -71,8 +71,29 @@ export default function AdminPage() {
           if (!res.data.hero) res.data.hero = { elements: [] };
           if (!res.data.hero.elements) res.data.hero.elements = [];
           
-          if (!res.data.hero.elements.find((e: any) => e.type === 'hero')) {
-            res.data.hero.elements.push({ id: 'hero-block', type: 'hero', x: 50, y: 15, w: 800, h: 400, props: {} });
+          // Migrate old hero static data to individual canvas elements
+          if (res.data.hero.title || res.data.hero.subtitle || res.data.hero.avatarText) {
+            const newElements = [];
+            
+            if (res.data.hero.avatarText) {
+              newElements.push({ id: 'hero-logo', type: 'text', x: 50, y: 3, w: 120, h: 120, props: { text: res.data.hero.avatarText, isLogo: true } });
+            }
+            if (res.data.hero.subtitle) {
+              newElements.push({ id: 'hero-sub', type: 'text', x: 50, y: 7, w: 600, props: { text: res.data.hero.subtitle, textType: 'subtitle', color: '#94a3b8', fontSize: '18' } });
+            }
+            if (res.data.hero.title) {
+              newElements.push({ id: 'hero-title', type: 'text', x: 50, y: 12, w: 800, props: { text: res.data.hero.title, textType: 'title', isGradient: true } });
+            }
+            if (res.data.hero.description) {
+              newElements.push({ id: 'hero-desc', type: 'text', x: 50, y: 22, w: 700, props: { text: res.data.hero.description, textType: 'description', color: '#64748b', fontSize: '16' } });
+            }
+            
+            // Push migrated elements and clear old static fields
+            res.data.hero.elements.push(...newElements);
+            delete res.data.hero.title;
+            delete res.data.hero.subtitle;
+            delete res.data.hero.description;
+            delete res.data.hero.avatarText;
           }
           
           // Migrate old projects array to individual project elements
@@ -232,7 +253,7 @@ export default function AdminPage() {
   };
 
   // Generic Update Helpers
-  const handleHeroChange = (field: string, value: any) => setData(prev => ({ ...prev, hero: { ...prev.hero, [field]: value } }));
+
 
   // DYNAMIC PAGE BUILDER LOGIC
   const addDynamicBlock = (type: BlockType) => {
@@ -283,6 +304,8 @@ export default function AdminPage() {
   const addCanvasElement = (type: CanvasElementType) => {
     const id = Math.random().toString(36).substr(2, 9);
     const newElement: CanvasElement = { id, type, x: 50, y: 5, props: {} };
+    if (type === 'text') newElement.props = { text: "Yeni Metin", textType: 'normal', color: '#000000', fontSize: '16' };
+    if (type === 'logo') newElement.props = { text: "A.", isLogo: true };
     if (type === 'button') newElement.props = { label: "Yeni Buton" };
     if (type === 'shape') newElement.props = { shapeType: 'circle', color: '#db2777' };
     if (type === 'line') newElement.props = { color: '#cbd5e1' };
@@ -470,21 +493,7 @@ export default function AdminPage() {
           Alper CMS
         </h1>
 
-        {/* Hero Form */}
-        <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <button onClick={() => { setIsHeroOpen(!isHeroOpen); setPreviewMode('main'); }} className="w-full p-3 flex justify-between items-center text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
-            <span>🎯 Karşılama Alanı</span>
-            {isHeroOpen ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
-          </button>
-          {isHeroOpen && (
-            <div className="p-3 space-y-3 border-t border-slate-200 dark:border-slate-800">
-              <div><label className="text-xs text-slate-500">Logo</label><input value={data.hero.avatarText} onChange={e => handleHeroChange("avatarText", e.target.value)} className="w-full p-2 text-sm rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800" /></div>
-              <div><label className="text-xs text-slate-500">Üst Başlık</label><input value={data.hero.subtitle} onChange={e => handleHeroChange("subtitle", e.target.value)} className="w-full p-2 text-sm rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800" /></div>
-              <div><label className="text-xs text-slate-500">Ana Başlık</label><textarea value={data.hero.title} onChange={e => handleHeroChange("title", e.target.value)} className="w-full p-2 text-sm rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-16 resize-none" /></div>
-              <div><label className="text-xs text-slate-500">Açıklama</label><textarea value={data.hero.description} onChange={e => handleHeroChange("description", e.target.value)} className="w-full p-2 text-sm rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-20 resize-none" /></div>
-            </div>
-          )}
-        </div>
+
 
         {/* Proje Şablonları */}
         <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -673,6 +682,9 @@ export default function AdminPage() {
         
         {/* Toolbar */}
         <div className="grid grid-cols-3 gap-2 mb-6">
+          {previewMode === 'main' && (
+            <button onClick={() => addCanvasElement('logo')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-indigo-500 hover:text-indigo-500 transition"><Circle className="w-4 h-4"/><span className="text-[10px] font-bold">Logo</span></button>
+          )}
           <button onClick={() => previewMode === 'main' ? addCanvasElement('text') : addDynamicBlock('text')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-purple-500 hover:text-purple-500 transition"><Type className="w-4 h-4"/><span className="text-[10px] font-bold">Metin</span></button>
           <button onClick={() => previewMode === 'main' ? addCanvasElement('button') : addDynamicBlock('button')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-blue-500 hover:text-blue-500 transition"><LinkIcon className="w-4 h-4"/><span className="text-[10px] font-bold">Buton</span></button>
           <button onClick={() => previewMode === 'main' ? addCanvasElement('image') : addDynamicBlock('image')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-green-500 hover:text-green-500 transition"><ImageIcon className="w-4 h-4"/><span className="text-[10px] font-bold">Resim</span></button>
@@ -702,11 +714,29 @@ export default function AdminPage() {
 
                 {selectedCanvasEl.type === 'text' && (
                   <>
-                    <div><label className="text-xs text-slate-500">Yazı</label><textarea value={selectedCanvasEl.props.text || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "text", e.target.value)} className="w-full p-1.5 text-xs rounded border h-20" /></div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div><label className="text-[10px] text-slate-500">Punto</label><input type="number" value={selectedCanvasEl.props.fontSize || 16} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "fontSize", e.target.value)} className="w-full p-1 text-xs border rounded" /></div>
-                      <div><label className="text-[10px] text-slate-500">Renk</label><input type="color" value={selectedCanvasEl.props.color || "#000000"} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full h-6 border rounded p-0" /></div>
+                    <div><label className="text-xs text-slate-500">Metin Türü</label>
+                      <select value={selectedCanvasEl.props.textType || 'normal'} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "textType", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950">
+                        <option value="normal">Normal Metin</option>
+                        <option value="subtitle">Üst Başlık (Küçük ve Renkli)</option>
+                        <option value="title">Ana Başlık (Devasa)</option>
+                        <option value="description">Açıklama (Gri ve Okunabilir)</option>
+                      </select>
                     </div>
+                    <div><label className="text-xs text-slate-500">Yazı</label><textarea value={selectedCanvasEl.props.text || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "text", e.target.value)} className="w-full p-1.5 text-xs rounded border h-20 bg-white dark:bg-slate-950" /></div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className="text-[10px] text-slate-500">Özel Punto</label><input type="number" value={selectedCanvasEl.props.fontSize || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "fontSize", e.target.value)} placeholder="Oto" className="w-full p-1 text-xs border rounded bg-white dark:bg-slate-950" /></div>
+                      <div><label className="text-[10px] text-slate-500">Sabit Renk</label><input type="color" value={selectedCanvasEl.props.color || "#000000"} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "color", e.target.value)} className="w-full h-7 border rounded p-0 bg-white dark:bg-slate-950 cursor-pointer" /></div>
+                    </div>
+                    
+                    <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={selectedCanvasEl.props.isGradient || false} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "isGradient", e.target.checked)} /> Degrade (Gradient) Efekti Uygula</label>
+                  </>
+                )}
+
+                {selectedCanvasEl.type === 'logo' && (
+                  <>
+                    <div><label className="text-xs text-slate-500">Logo Metni (Örn: A.)</label><input value={selectedCanvasEl.props.text || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "text", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" /></div>
+                    <div><label className="text-[10px] text-slate-500">Veya İç Resim (Sürükle bırak)</label><input value={selectedCanvasEl.props.image || ""} onChange={e => updateCanvasElementProps(selectedCanvasEl.id, "image", e.target.value)} className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" /></div>
                   </>
                 )}
 
