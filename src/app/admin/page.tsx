@@ -43,6 +43,11 @@ export default function AdminPage() {
   const [mediaFiles, setMediaFiles] = useState<{key: string, size: number}[]>([]);
   const [isFileManagerOpen, setIsFileManagerOpen] = useState(false);
 
+  // Draft System State
+  const [drafts, setDrafts] = useState<string[]>([]);
+  const [currentDraftId, setCurrentDraftId] = useState<string>('main');
+  const [draftNameInput, setDraftNameInput] = useState("");
+
   // Custom UI Dialogs
   const [toast, setToast] = useState<{message: string, type: 'success'|'error'|'info'} | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null);
@@ -65,8 +70,9 @@ export default function AdminPage() {
       .catch(console.error);
   };
 
-  useEffect(() => {
-    fetch("/api/content")
+  const loadContent = (id: string = 'main') => {
+    setIsLoading(true);
+    fetch(`/api/content?id=${id}`)
       .then(res => res.json())
       .then(res => {
         if (res.data) {
@@ -121,17 +127,32 @@ export default function AdminPage() {
           if (!res.data.navbar) res.data.navbar = { enabled: true, links: [] };
 
           setData(res.data);
+          setCurrentDraftId(id);
         }
       })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  };
+
+  const fetchDrafts = () => {
+    fetch("/api/drafts")
+      .then(res => res.json())
+      .then(res => {
+        if (res.drafts) setDrafts(res.drafts);
+      })
       .catch(console.error);
+  };
+
+  useEffect(() => {
+    loadContent('main');
+    fetchDrafts();
 
     fetch("/api/pages")
       .then(res => res.json())
       .then(res => {
         if (res.data) setPages(res.data);
-        setIsLoading(false);
       })
-      .catch(() => setIsLoading(false));
+      .catch(console.error);
 
     fetchMedia();
   }, []);
@@ -192,10 +213,39 @@ export default function AdminPage() {
       const res = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data })
+        body: JSON.stringify({ id: 'main', data })
       });
-      if (res.ok) showToast("Ana sayfa başarıyla yayınlandı!", "success");
+      if (res.ok) {
+        showToast("Ana sayfa canlıya alındı!", "success");
+        setCurrentDraftId('main');
+        fetchDrafts();
+      }
       else showToast("Kaydetme başarısız.", "error");
+    } catch (e) {
+      showToast("Bir hata oluştu.", "error");
+    }
+    setIsSaving(false);
+  };
+
+  const handleSaveDraft = async (draftId: string) => {
+    if (!draftId.trim()) {
+      showToast("Taslak adı boş olamaz", "error");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: draftId, data })
+      });
+      if (res.ok) {
+        showToast(`'${draftId}' taslağı kaydedildi!`, "success");
+        setCurrentDraftId(draftId);
+        fetchDrafts();
+        setDraftNameInput("");
+      }
+      else showToast("Taslak kaydetme başarısız.", "error");
     } catch (e) {
       showToast("Bir hata oluştu.", "error");
     }
@@ -839,6 +889,47 @@ export default function AdminPage() {
         >
           {isSaving ? "Kaydediliyor..." : (previewMode === 'main' ? "Ana Sayfayı YAYINLA" : "Alt Sayfayı YAYINLA")}
         </button>
+
+        {/* Taslak Yöneticisi */}
+        {previewMode === 'main' && (
+          <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase flex items-center justify-between">
+              Taslaklar
+              <span className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-600 dark:text-slate-400" title="Şu an üzerinde çalıştığınız versiyon">
+                Aktif: {currentDraftId === 'main' ? 'CANLI' : currentDraftId}
+              </span>
+            </h3>
+            
+            <select 
+              value={currentDraftId} 
+              onChange={e => loadContent(e.target.value)}
+              className="w-full mb-3 p-2 text-xs border rounded bg-white dark:bg-slate-950 outline-none"
+            >
+              <option value="main">YAYINDAKİ SÜRÜM (main)</option>
+              {drafts.map(d => (
+                <option key={d} value={d}>Taslak: {d}</option>
+              ))}
+            </select>
+            
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                placeholder="Yeni taslak ismi..." 
+                value={draftNameInput}
+                onChange={e => setDraftNameInput(e.target.value)}
+                className="flex-1 p-2 text-xs border rounded bg-white dark:bg-slate-950 outline-none"
+              />
+              <button 
+                onClick={() => handleSaveDraft(draftNameInput)}
+                disabled={isSaving || !draftNameInput.trim()}
+                className="px-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded transition-colors disabled:opacity-50"
+              >
+                Kaydet
+              </button>
+            </div>
+            <p className="text-[9px] text-slate-500 mt-2">Farklı bir HTML import etmeden önce mevcut halini bir taslak olarak kaydedebilirsin.</p>
+          </div>
+        )}
 
         {/* Akıllı HTML İçe Aktar */}
         {previewMode === 'main' && (
