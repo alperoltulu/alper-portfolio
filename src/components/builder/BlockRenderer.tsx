@@ -1,8 +1,9 @@
 import React from "react";
 import Link from "next/link";
-import { Download, ExternalLink, PlayCircle } from "lucide-react";
+import { IconMap } from "@/lib/icons";
+import { HelpCircle, Download, ExternalLink, PlayCircle } from "lucide-react";
 
-export type BlockType = 'text' | 'image' | 'button' | 'social' | 'cv' | 'video' | 'line';
+export type BlockType = 'text' | 'image' | 'button' | 'social' | 'icon' | 'cv' | 'video' | 'line';
 
 export interface Block {
   id: string;
@@ -63,6 +64,32 @@ export default function BlockRenderer({ blocks }: { blocks: Block[] }) {
                   {block.data.label || "Tıklayın"}
                   <ExternalLink className="w-4 h-4" />
                 </a>
+              </div>
+            );
+
+          case 'icon':
+            const dynamicIcons = block.data.icons || [];
+            return (
+              <div key={block.id} className="flex flex-wrap items-center gap-4 py-4 justify-center sm:justify-start">
+                {dynamicIcons.map((ic: any, i: number) => {
+                  const name = ic.iconName ? ic.iconName.charAt(0).toUpperCase() + ic.iconName.slice(1) : 'HelpCircle';
+                  const IconComponent = IconMap[name] || HelpCircle;
+                  const innerContent = (
+                    <div 
+                      className={`flex items-center justify-center transition-transform hover:scale-110 shadow-sm border border-slate-200 dark:border-slate-800 ${ic.rounded ? 'rounded-full' : 'rounded-xl'}`}
+                      style={{ backgroundColor: ic.bgColor || 'transparent', width: '56px', height: '56px' }}
+                    >
+                      <IconComponent color={ic.color || '#000'} size={28} strokeWidth={2} />
+                    </div>
+                  );
+                  return ic.url ? (
+                    <a key={ic.id || i} href={ic.url} target="_blank" rel="noreferrer">
+                      {innerContent}
+                    </a>
+                  ) : (
+                    <div key={ic.id || i}>{innerContent}</div>
+                  );
+                })}
               </div>
             );
 

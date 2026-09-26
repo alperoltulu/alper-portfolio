@@ -1,4 +1,4 @@
-name = "alper-portfolio"
+name = "alperoltulu-portfolio"
 pages_build_output_dir = "out"
 compatibility_date = "2024-03-20"
 compatibility_flags = ["nodejs_compat"]

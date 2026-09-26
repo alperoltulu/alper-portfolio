@@ -4,7 +4,8 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CanvasElement } from '@/types/canvas';
 import ProjectCard from './ProjectCard';
-// Removed missing icons
+import { IconMap } from '@/lib/icons';
+import { HelpCircle } from 'lucide-react';
 
 interface CanvasEngineProps {
   elements: CanvasElement[];
@@ -205,14 +206,13 @@ export default function CanvasEngine({
       return;
     }
     if (url) {
-      e.preventDefault();
       if (url.startsWith('#')) {
-        const targetId = url.substring(1);
-        const target = document.getElementById(targetId);
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      } else if (url.startsWith('http')) {
+        // Let the native href attribute handle hash navigation
+        return;
+      }
+      
+      e.preventDefault();
+      if (url.startsWith('http')) {
         window.open(url, '_blank');
       } else {
         window.location.href = url;
@@ -279,7 +279,7 @@ export default function CanvasEngine({
           <a 
             href={logoUrl}
             onClick={(e) => handleLinkClick(e, el.props.url)}
-            className="bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-900/20 transition-all border-4 border-white dark:border-slate-800 overflow-hidden relative cursor-pointer group block pointer-events-auto"
+            className="bg-slate-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-blue-900/20 transition-all border-4 border-white dark:border-slate-800 overflow-hidden relative cursor-pointer group pointer-events-auto"
             style={{
               width: el.w ? `${el.w}px` : '80px',
               height: el.h ? `${el.h}px` : '80px',
@@ -327,9 +327,8 @@ export default function CanvasEngine({
               width: el.w ? `${el.w}px` : 'max-content',
               textAlign: el.props.align || 'center'
             }}
-          >
-            {el.props.text || "Yeni Metin"}
-          </div>
+            dangerouslySetInnerHTML={{ __html: el.props.text || "Yeni Metin" }}
+          />
         );
 
       case 'image':
@@ -345,6 +344,43 @@ export default function CanvasEngine({
               borderRadius: el.props.rounded ? '50%' : '16px'
             }}
           />
+        );
+
+      case 'icon':
+        const dynamicIcons = el.props.icons || [];
+        return (
+          <div className="flex gap-4 items-center flex-wrap justify-center" style={{
+            width: el.w ? `${el.w}px` : 'auto',
+            height: el.h ? `${el.h}px` : 'auto'
+          }}>
+            {dynamicIcons.map((ic: any, i: number) => {
+              const name = ic.iconName ? ic.iconName.charAt(0).toUpperCase() + ic.iconName.slice(1) : 'HelpCircle';
+              const IconComponent = IconMap[name] || HelpCircle;
+              
+              const innerContent = (
+                <div 
+                  className={`flex items-center justify-center transition-transform hover:scale-110 shadow-sm ${ic.rounded ? 'rounded-full' : 'rounded-xl'}`}
+                  style={{ backgroundColor: ic.bgColor || 'transparent', width: '48px', height: '48px' }}
+                >
+                  <IconComponent color={ic.color || '#000'} size={24} strokeWidth={2} />
+                </div>
+              );
+
+              return ic.url ? (
+                <a key={ic.id || i} href={isEditMode ? undefined : ic.url} target="_blank" rel="noreferrer" onClick={e => isEditMode && e.preventDefault()} className="pointer-events-auto">
+                  {innerContent}
+                </a>
+              ) : (
+                <div key={ic.id || i} className="pointer-events-auto cursor-default">
+                  {innerContent}
+                </div>
+              );
+            })}
+            
+            {dynamicIcons.length === 0 && (
+              <span className="text-xs text-slate-500 px-4 py-2 bg-slate-100 rounded-lg">İkon Ekleyin</span>
+            )}
+          </div>
         );
 
       case 'social':

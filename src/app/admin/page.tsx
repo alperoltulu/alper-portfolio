@@ -6,7 +6,7 @@ import CanvasEngine from "@/components/builder/CanvasEngine";
 import HeroStatic from "@/components/builder/HeroStatic";
 import BlockRenderer, { Block, BlockType } from "@/components/builder/BlockRenderer";
 import { CanvasElement, CanvasElementType } from "@/types/canvas";
-import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Minus, UploadCloud, Copy, X, Info } from "lucide-react";
+import { ChevronDown, ChevronRight, Type, Image as ImageIcon, Link as LinkIcon, Share2, FileText, Video as VideoIcon, Trash2, ArrowUp, ArrowDown, Edit2, Circle, Minus, UploadCloud, Copy, X, Info, FileCode } from "lucide-react";
 
 const DEFAULT_DATA = {
   navbar: {
@@ -115,6 +115,8 @@ export default function AdminPage() {
 
           // Remove the old 'projects' (plural) block if it exists
           res.data.hero.elements = res.data.hero.elements.filter((e: any) => e.type !== 'projects');
+          // Also remove any old 'hero' (single block) if it still lingers
+          res.data.hero.elements = res.data.hero.elements.filter((e: any) => e.type !== 'hero');
 
           if (!res.data.navbar) res.data.navbar = { enabled: true, links: [] };
 
@@ -266,6 +268,7 @@ export default function AdminPage() {
     const newBlock: Block = { id: Math.random().toString(36).substr(2, 9), type, data: {} };
     if (type === 'button') newBlock.data = { label: "Buton", url: "#" };
     if (type === 'social') newBlock.data = { links: [] };
+    if (type === 'icon') newBlock.data = { icons: [{ id: Math.random().toString(36).substr(2, 9), iconName: 'Github', color: '#ffffff', bgColor: '#1e293b', url: '', rounded: true }] };
     setEditingPage(prev => ({ ...prev, blocks: [...prev.blocks, newBlock] }));
   };
   const updateDynamicBlock = (id: string, field: string, value: any) => {
@@ -316,6 +319,7 @@ export default function AdminPage() {
     if (type === 'shape') newElement.props = { shapeType: 'circle', color: '#db2777' };
     if (type === 'line') newElement.props = { color: '#cbd5e1' };
     if (type === 'social') newElement.props = { links: [] };
+    if (type === 'icon') newElement.props = { icons: [{ id: Math.random().toString(36).substr(2, 9), iconName: 'Github', color: '#ffffff', bgColor: '#1e293b', url: '', rounded: true }] };
     
     setData(prev => ({
       ...prev,
@@ -336,6 +340,102 @@ export default function AdminPage() {
   const removeCanvasElement = (id: string) => {
     setData(prev => ({ ...prev, hero: { ...prev.hero, elements: prev.hero.elements.filter(el => el.id !== id) } }));
     setSelectedCanvasIds(prev => prev.filter(pId => pId !== id));
+  };
+
+  // HTML Smart Import Logic
+  const handleHtmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const html = event.target?.result as string;
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      const elementsInOrder = doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6, p, img, a');
+      const newElements: CanvasElement[] = [];
+      let currentY = 10;
+
+      elementsInOrder.forEach((node) => {
+        if (newElements.length > 50) return; // Limit to 50 items so canvas doesn't crash
+
+        const tag = node.tagName.toLowerCase();
+        
+        if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)) {
+          const text = (node.textContent || '').trim();
+          if (text) {
+            newElements.push({
+              id: 'html-' + Math.random().toString(36).substring(2),
+              type: 'text',
+              x: 50,
+              y: currentY,
+              w: tag === 'h1' ? 800 : 600,
+              props: { text, textType: tag === 'h1' ? 'title' : 'subtitle', fontSize: tag === 'h1' ? 48 : 24 }
+            });
+            currentY += 8;
+          }
+        } else if (tag === 'p') {
+          const text = (node.textContent || '').trim();
+          if (text.length > 5) {
+            newElements.push({
+              id: 'html-' + Math.random().toString(36).substring(2),
+              type: 'text',
+              x: 50,
+              y: currentY,
+              w: 700,
+              props: { text, textType: 'description', fontSize: 16 }
+            });
+            currentY += 8;
+          }
+        } else if (tag === 'img') {
+          const src = node.getAttribute('src');
+          if (src && !src.startsWith('data:image')) {
+            newElements.push({
+              id: 'html-' + Math.random().toString(36).substring(2),
+              type: 'image',
+              x: 50,
+              y: currentY,
+              w: 300,
+              h: 200,
+              props: { url: src, rounded: true }
+            });
+            currentY += 25;
+          }
+        } else if (tag === 'a') {
+          const href = node.getAttribute('href');
+          const text = (node.textContent || '').trim();
+          // Skip links with images inside to avoid duplicates
+          if (node.querySelector('img')) return; 
+
+          if (href && text && text.length < 50 && !href.startsWith('#')) {
+            newElements.push({
+              id: 'html-' + Math.random().toString(36).substring(2),
+              type: 'button',
+              x: 50,
+              y: currentY,
+              w: 200,
+              h: 50,
+              props: { label: text, url: href }
+            });
+            currentY += 10;
+          }
+        }
+      });
+
+      if (newElements.length > 0) {
+        setData((prev: any) => ({
+          ...prev,
+          hero: { ...prev.hero, elements: [...(prev.hero.elements || []), ...newElements] }
+        }));
+        setSelectedCanvasIds(newElements.map(e => e.id));
+        showToast(`${newElements.length} öğe başarıyla içe aktarıldı! (Dikey sırayla dizildi)`, 'success');
+      } else {
+        showToast(`HTML içinde aktarılacak metin veya resim bulunamadı.`, 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
   };
 
   // File Upload Logic (Cloudflare R2)
@@ -626,6 +726,42 @@ export default function AdminPage() {
                     ))}
                   </div>
                 )}
+                {block.type === 'icon' && (
+                  <div className="space-y-2">
+                    <button onClick={() => updateDynamicBlock(block.id, "icons", [...(block.data.icons||[]), {id: Math.random().toString(36).substring(2), iconName: 'Star', color: '#000000', bgColor: '#ffffff', url: '', rounded: true}])} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded w-full">+ Yeni İkon Ekle</button>
+                    {(block.data.icons||[]).map((icon:any, i:number) => (
+                      <div key={icon.id} className="flex flex-col gap-1 bg-white dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded relative">
+                        <button onClick={() => { const ci=[...block.data.icons]; ci.splice(i,1); updateDynamicBlock(block.id,"icons",ci); }} className="absolute top-1 right-1 text-red-500"><Trash2 className="w-3 h-3"/></button>
+                        
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <label className="text-[10px] text-slate-500">İkon Adı</label>
+                            <input value={icon.iconName} onChange={e => { const ci=[...block.data.icons]; ci[i].iconName=e.target.value; updateDynamicBlock(block.id,"icons",ci); }} className="w-full p-1 text-xs border rounded bg-slate-50 dark:bg-slate-900" placeholder="Github, Linkedin..."/>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-500">Bağlantı URL</label>
+                            <input value={icon.url} onChange={e => { const ci=[...block.data.icons]; ci[i].url=e.target.value; updateDynamicBlock(block.id,"icons",ci); }} className="w-full p-1 text-xs border rounded bg-slate-50 dark:bg-slate-900" placeholder="https://..."/>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-slate-500">İkon Rengi</label>
+                            <input type="color" value={icon.color || '#ffffff'} onChange={e => { const ci=[...block.data.icons]; ci[i].color=e.target.value; updateDynamicBlock(block.id,"icons",ci); }} className="w-full h-6 p-0 border rounded"/>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-500">Kutu Rengi (Arkaplan)</label>
+                            <input type="color" value={icon.bgColor || '#1e293b'} onChange={e => { const ci=[...block.data.icons]; ci[i].bgColor=e.target.value; updateDynamicBlock(block.id,"icons",ci); }} className="w-full h-6 p-0 border rounded"/>
+                          </div>
+                        </div>
+                        <label className="text-[10px] text-slate-500 flex items-center gap-1 mt-1">
+                          <input type="checkbox" checked={icon.rounded} onChange={e => { const ci=[...block.data.icons]; ci[i].rounded=e.target.checked; updateDynamicBlock(block.id,"icons",ci); }} />
+                          Kutuyu Yuvarlak Yap
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -704,6 +840,20 @@ export default function AdminPage() {
           {isSaving ? "Kaydediliyor..." : (previewMode === 'main' ? "Ana Sayfayı YAYINLA" : "Alt Sayfayı YAYINLA")}
         </button>
 
+        {/* Akıllı HTML İçe Aktar */}
+        {previewMode === 'main' && (
+          <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl">
+            <h3 className="text-xs font-bold text-purple-800 dark:text-purple-300 mb-2 uppercase flex items-center gap-2">
+              <FileCode className="w-4 h-4"/> Akıllı HTML İçe Aktar
+            </h3>
+            <p className="text-[10px] text-purple-600 dark:text-purple-400 mb-3 leading-tight">Bir HTML dosyası seçin. Sistem içindeki başlık, metin, resim ve linkleri tuvale döksün.</p>
+            <label className="cursor-pointer flex items-center justify-center gap-2 w-full py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
+              <UploadCloud className="w-4 h-4" /> HTML Seç & Aktar
+              <input type="file" accept=".html" className="hidden" onChange={handleHtmlImport} />
+            </label>
+          </div>
+        )}
+
         {/* Dosya Yöneticisi (R2) Galerisi - KÜÇÜK VERSİYON */}
         <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
           <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
@@ -769,7 +919,7 @@ export default function AdminPage() {
           <button onClick={() => previewMode === 'main' ? addCanvasElement('text') : addDynamicBlock('text')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-purple-500 hover:text-purple-500 transition"><Type className="w-4 h-4"/><span className="text-[10px] font-bold">Metin</span></button>
           <button onClick={() => previewMode === 'main' ? addCanvasElement('button') : addDynamicBlock('button')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-blue-500 hover:text-blue-500 transition"><LinkIcon className="w-4 h-4"/><span className="text-[10px] font-bold">Buton</span></button>
           <button onClick={() => previewMode === 'main' ? addCanvasElement('image') : addDynamicBlock('image')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-green-500 hover:text-green-500 transition"><ImageIcon className="w-4 h-4"/><span className="text-[10px] font-bold">Resim</span></button>
-          <button onClick={() => previewMode === 'main' ? addCanvasElement('social') : addDynamicBlock('social')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-orange-500 hover:text-orange-500 transition"><Share2 className="w-4 h-4"/><span className="text-[10px] font-bold">Sosyal</span></button>
+          <button onClick={() => previewMode === 'main' ? addCanvasElement('icon') : addDynamicBlock('icon')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-orange-500 hover:text-orange-500 transition"><Share2 className="w-4 h-4"/><span className="text-[10px] font-bold">İkonlar</span></button>
           <button onClick={() => previewMode === 'main' ? addCanvasElement('line') : addDynamicBlock('line')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-slate-500 hover:text-slate-500 transition"><Minus className="w-4 h-4"/><span className="text-[10px] font-bold">Çizgi</span></button>
           {previewMode === 'main' && (
             <button onClick={() => addCanvasElement('shape')} className="flex flex-col items-center justify-center gap-1 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg hover:border-pink-500 hover:text-pink-500 transition"><Circle className="w-4 h-4"/><span className="text-[10px] font-bold">Şekil</span></button>
@@ -940,6 +1090,44 @@ export default function AdminPage() {
                         <input value={l.logoUrl} onChange={e => { const cl=[...selectedCanvasEl.props.links]; cl[i].logoUrl=e.target.value; updateCanvasElementProps(selectedCanvasEl.id,"links",cl); }} placeholder="Özel Logo URL (İsteğe bağlı)" className="text-[10px] border rounded p-1 w-[90%]" />
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {selectedCanvasEl.type === 'icon' && (
+                  <div className="space-y-2">
+                    <button onClick={() => updateCanvasElementProps(selectedCanvasEl.id, "icons", [...(selectedCanvasEl.props.icons||[]), {id: Math.random().toString(36).substring(2), iconName: 'Star', color: '#000000', bgColor: '#ffffff', url: '', rounded: true}])} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded w-full">+ Yeni İkon Ekle</button>
+                    {(selectedCanvasEl.props.icons||[]).map((icon:any, i:number) => (
+                      <div key={icon.id} className="flex flex-col gap-1 bg-white dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 rounded relative">
+                        <button onClick={() => { const ci=[...selectedCanvasEl.props.icons]; ci.splice(i,1); updateCanvasElementProps(selectedCanvasEl.id,"icons",ci); }} className="absolute top-1 right-1 text-red-500 hover:bg-red-50"><Trash2 className="w-3 h-3"/></button>
+                        
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <label className="text-[10px] text-slate-500">İkon Adı</label>
+                            <input value={icon.iconName} onChange={e => { const ci=[...selectedCanvasEl.props.icons]; ci[i].iconName=e.target.value; updateCanvasElementProps(selectedCanvasEl.id,"icons",ci); }} className="w-full p-1 text-xs border rounded bg-slate-50 dark:bg-slate-900" placeholder="Github, Linkedin..."/>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-500">Bağlantı URL</label>
+                            <input value={icon.url} onChange={e => { const ci=[...selectedCanvasEl.props.icons]; ci[i].url=e.target.value; updateCanvasElementProps(selectedCanvasEl.id,"icons",ci); }} className="w-full p-1 text-xs border rounded bg-slate-50 dark:bg-slate-900" placeholder="https://..."/>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-slate-500">İkon Rengi</label>
+                            <input type="color" value={icon.color || '#ffffff'} onChange={e => { const ci=[...selectedCanvasEl.props.icons]; ci[i].color=e.target.value; updateCanvasElementProps(selectedCanvasEl.id,"icons",ci); }} className="w-full h-6 p-0 border rounded"/>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-500">Kutu Rengi (Arkaplan)</label>
+                            <input type="color" value={icon.bgColor || '#1e293b'} onChange={e => { const ci=[...selectedCanvasEl.props.icons]; ci[i].bgColor=e.target.value; updateCanvasElementProps(selectedCanvasEl.id,"icons",ci); }} className="w-full h-6 p-0 border rounded"/>
+                          </div>
+                        </div>
+                        <label className="text-[10px] text-slate-500 flex items-center gap-1 mt-1">
+                          <input type="checkbox" checked={icon.rounded} onChange={e => { const ci=[...selectedCanvasEl.props.icons]; ci[i].rounded=e.target.checked; updateCanvasElementProps(selectedCanvasEl.id,"icons",ci); }} />
+                          Kutuyu Yuvarlak Yap
+                        </label>
+                      </div>
+                    ))}
+                    <div className="text-[10px] text-slate-400 mt-2">İkon Listesi: Github, Linkedin, Twitter, Youtube, Mail, Facebook, Instagram, Star, Heart, Check, vb...</div>
                   </div>
                 )}
 
