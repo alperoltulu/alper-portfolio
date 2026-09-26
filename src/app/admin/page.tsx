@@ -403,86 +403,67 @@ export default function AdminPage() {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
-      const elementsInOrder = doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6, p, img, a');
-      const newElements: CanvasElement[] = [];
-      let currentY = 10;
+      // 1. Extract CSS
+      let cssContent = '';
+      doc.querySelectorAll('style').forEach(s => {
+        cssContent += s.innerHTML + '\n';
+      });
 
-      elementsInOrder.forEach((node) => {
-        if (newElements.length > 50) return; // Limit to 50 items so canvas doesn't crash
+      // 2. Annotate the body for editable elements
+      const editables: { id: string, tag: string, content: string, isImage: boolean }[] = [];
+      let editableCount = 0;
 
+      doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, a, img, button').forEach((node) => {
         const tag = node.tagName.toLowerCase();
+        const isImage = tag === 'img';
+        const textContent = (node.textContent || '').trim();
         
-        if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)) {
-          const text = (node.textContent || '').trim();
-          if (text) {
-            newElements.push({
-              id: 'html-' + Math.random().toString(36).substring(2),
-              type: 'text',
-              x: 50,
-              y: currentY,
-              w: tag === 'h1' ? 800 : 600,
-              props: { text, textType: tag === 'h1' ? 'title' : 'subtitle', fontSize: tag === 'h1' ? 48 : 24 }
-            });
-            currentY += 8;
+        // Has meaningful text or is an image
+        if (isImage || textContent.length > 0) {
+          
+          // Optimization: Skip if it's a container element (like <a>) that only holds other text-level elements we already process
+          if (!isImage && node.children.length > 0) {
+            const hasTextChild = Array.from(node.children).some(c => 
+              ['h1','h2','h3','h4','h5','h6','p','span'].includes(c.tagName.toLowerCase())
+            );
+            if (hasTextChild) return; // We let the children be the editables
           }
-        } else if (tag === 'p') {
-          const text = (node.textContent || '').trim();
-          if (text.length > 5) {
-            newElements.push({
-              id: 'html-' + Math.random().toString(36).substring(2),
-              type: 'text',
-              x: 50,
-              y: currentY,
-              w: 700,
-              props: { text, textType: 'description', fontSize: 16 }
-            });
-            currentY += 8;
-          }
-        } else if (tag === 'img') {
-          const src = node.getAttribute('src');
-          if (src && !src.startsWith('data:image')) {
-            newElements.push({
-              id: 'html-' + Math.random().toString(36).substring(2),
-              type: 'image',
-              x: 50,
-              y: currentY,
-              w: 300,
-              h: 200,
-              props: { url: src, rounded: true }
-            });
-            currentY += 25;
-          }
-        } else if (tag === 'a') {
-          const href = node.getAttribute('href');
-          const text = (node.textContent || '').trim();
-          // Skip links with images inside to avoid duplicates
-          if (node.querySelector('img')) return; 
 
-          if (href && text && text.length < 50 && !href.startsWith('#')) {
-            newElements.push({
-              id: 'html-' + Math.random().toString(36).substring(2),
-              type: 'button',
-              x: 50,
-              y: currentY,
-              w: 200,
-              h: 50,
-              props: { label: text, url: href }
-            });
-            currentY += 10;
-          }
+          const cmsId = `cms-${editableCount++}`;
+          node.setAttribute('data-cms-id', cmsId);
+          
+          editables.push({
+            id: cmsId,
+            tag,
+            content: isImage ? (node.getAttribute('src') || '') : (node.innerHTML || ''),
+            isImage
+          });
         }
       });
 
-      if (newElements.length > 0) {
-        setData((prev: any) => ({
-          ...prev,
-          hero: { ...prev.hero, elements: [...(prev.hero.elements || []), ...newElements] }
-        }));
-        setSelectedCanvasIds(newElements.map(e => e.id));
-        showToast(`${newElements.length} öğe başarıyla içe aktarıldı! (Dikey sırayla dizildi)`, 'success');
-      } else {
-        showToast(`HTML içinde aktarılacak metin veya resim bulunamadı.`, 'error');
-      }
+      // We wrap it so styles and scripts don't bleed completely if we want to isolate, but for now we just take the body
+      const finalHtml = doc.body.innerHTML;
+
+      const newElement: CanvasElement = {
+        id: 'html-template-' + Math.random().toString(36).substring(2),
+        type: 'html-template',
+        x: 0,
+        y: 0,
+        w: 100, // 100% width
+        h: undefined, // auto height
+        props: {
+          html: finalHtml,
+          css: cssContent,
+          editables: editables
+        }
+      };
+
+      setData((prev: any) => ({
+        ...prev,
+        hero: { ...prev.hero, elements: [...(prev.hero.elements || []), newElement] }
+      }));
+      setSelectedCanvasIds([newElement.id]);
+      showToast(`Tasarım şablonu içeri aktarıldı! ${editables.length} alan düzenlenebilir.`, 'success');
     };
     reader.readAsText(file);
     e.target.value = ''; // Reset input
@@ -1077,6 +1058,66 @@ export default function AdminPage() {
                   <div><label className="text-[10px] text-slate-500">Genişlik (px)</label><input type="number" value={selectedCanvasEl.w || ""} onChange={e => updateCanvasElement(selectedCanvasEl.id, { w: Number(e.target.value) })} className="w-full p-1.5 text-xs rounded border" placeholder="Oto"/></div>
                   <div><label className="text-[10px] text-slate-500">Yükseklik (px)</label><input type="number" value={selectedCanvasEl.h || ""} onChange={e => updateCanvasElement(selectedCanvasEl.id, { h: Number(e.target.value) })} className="w-full p-1.5 text-xs rounded border" placeholder="Oto"/></div>
                 </div>
+
+                {selectedCanvasEl.type === 'html-template' && (
+                  <>
+                    <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded border border-purple-200 dark:border-purple-800 mb-3">
+                      <p className="text-[10px] text-purple-700 dark:text-purple-300">
+                        Bu bir akıllı HTML şablonudur. Tasarımın tamamı korunur. Yalnızca içeriğini aşağıdan değiştirebilirsiniz.
+                      </p>
+                    </div>
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      {selectedCanvasEl.props.editables?.map((edit: any, idx: number) => (
+                        <div key={edit.id} className="flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800 pb-2">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase">{edit.tag}</label>
+                          {edit.isImage ? (
+                            <input 
+                              type="text" 
+                              value={edit.content} 
+                              onChange={(e) => {
+                                const newEditables = [...selectedCanvasEl.props.editables];
+                                newEditables[idx].content = e.target.value;
+                                
+                                // Parse and update HTML
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(selectedCanvasEl.props.html, 'text/html');
+                                const node = doc.querySelector(`[data-cms-id="${edit.id}"]`);
+                                if (node) {
+                                  node.setAttribute('src', e.target.value);
+                                }
+                                
+                                updateCanvasElementProps(selectedCanvasEl.id, "html", doc.body.innerHTML);
+                                updateCanvasElementProps(selectedCanvasEl.id, "editables", newEditables);
+                              }}
+                              className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950" 
+                              placeholder="Resim URL'si"
+                            />
+                          ) : (
+                            <textarea 
+                              value={edit.content} 
+                              onChange={(e) => {
+                                const newEditables = [...selectedCanvasEl.props.editables];
+                                newEditables[idx].content = e.target.value;
+                                
+                                // Parse and update HTML
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(selectedCanvasEl.props.html, 'text/html');
+                                const node = doc.querySelector(`[data-cms-id="${edit.id}"]`);
+                                if (node) {
+                                  node.innerHTML = e.target.value;
+                                }
+                                
+                                updateCanvasElementProps(selectedCanvasEl.id, "html", doc.body.innerHTML);
+                                updateCanvasElementProps(selectedCanvasEl.id, "editables", newEditables);
+                              }}
+                              className="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-950 min-h-[40px]" 
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 {selectedCanvasEl.type === 'text' && (
                   <>

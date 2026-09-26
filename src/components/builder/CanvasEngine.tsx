@@ -295,6 +295,19 @@ export default function CanvasEngine({
           </a>
         );
 
+      case 'html-template':
+        const templateMarkup = (el.props.css ? `<style>${el.props.css}</style>` : '') + (el.props.html || '');
+        return (
+          <div 
+            className="w-full h-full html-template-wrapper pointer-events-auto"
+            style={{
+              width: el.w ? (el.w === 100 ? '100%' : `${el.w}px`) : '100%',
+              height: el.h ? `${el.h}px` : 'auto'
+            }}
+            dangerouslySetInnerHTML={{ __html: templateMarkup }}
+          />
+        );
+
       case 'text':
         let extraClasses = "";
         let defaultColor = el.props.color || 'inherit';
