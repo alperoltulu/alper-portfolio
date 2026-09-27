@@ -302,10 +302,20 @@ export default function CanvasEngine({
             className="w-full h-full html-template-wrapper pointer-events-auto"
             style={{
               width: el.w ? (el.w === 100 ? '100%' : `${el.w}px`) : '100%',
-              height: el.h ? `${el.h}px` : 'auto'
+              height: el.h ? `${el.h}px` : '100vh', // Default to full viewport height for iframe
+              position: 'relative'
             }}
-            dangerouslySetInnerHTML={{ __html: templateMarkup }}
-          />
+          >
+            <iframe 
+               srcDoc={templateMarkup}
+               title="HTML Template"
+               className="w-full h-full border-0"
+               sandbox="allow-same-origin allow-scripts allow-popups"
+            />
+            {isEditMode && (
+               <div className="absolute inset-0 z-10 cursor-pointer" title="Seçmek için tıklayın (Düzenleme Modu)" />
+            )}
+          </div>
         );
 
       case 'text':

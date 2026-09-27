@@ -409,6 +409,9 @@ export default function AdminPage() {
         cssContent += s.innerHTML + '\n';
       });
 
+      // 1.5 Strip Scripts to prevent overrides and security issues
+      doc.querySelectorAll('script').forEach(s => s.remove());
+
       // 2. Annotate the body for editable elements
       const editables: { id: string, tag: string, content: string, isImage: boolean }[] = [];
       let editableCount = 0;
