@@ -458,12 +458,14 @@ export default function AdminPage() {
         }
       };
 
-      setData((prev: any) => ({
-        ...prev,
-        hero: { ...prev.hero, elements: [...(prev.hero.elements || []), newElement] }
-      }));
-      setSelectedCanvasIds([newElement.id]);
-      showToast(`Tasarım şablonu içeri aktarıldı! ${editables.length} alan düzenlenebilir.`, 'success');
+      if (window.confirm("Mevcut tuvaldeki her şeyi silip sadece bu HTML şablonunu yüklemek istediğinize emin misiniz? (Bu işlem geri alınamaz, önce taslak olarak kaydedebilirsiniz)")) {
+        setData((prev: any) => ({
+          ...prev,
+          hero: { ...prev.hero, elements: [newElement] }
+        }));
+        setSelectedCanvasIds([newElement.id]);
+        showToast(`Tasarım şablonu içeri aktarıldı! Tuval temizlendi.`, 'success');
+      }
     };
     reader.readAsText(file);
     e.target.value = ''; // Reset input
